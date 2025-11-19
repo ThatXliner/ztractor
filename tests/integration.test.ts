@@ -1,5 +1,5 @@
 import { test, expect, describe } from 'bun:test';
-import { extractMetadata, findTranslators, getAvailableTranslators } from './index';
+import { extractMetadata, findTranslators, getAvailableTranslators } from '../src/index';
 
 describe('extractMetadata - Integration Tests', () => {
   test('accepts URL as string', async () => {

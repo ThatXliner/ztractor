@@ -1,5 +1,5 @@
 import { test, expect, describe } from 'bun:test';
-import { Item } from './item';
+import { Item } from '../src/item';
 
 describe('Item constructor', () => {
   test('creates item with correct type', () => {

@@ -1,5 +1,5 @@
 import { test, expect, describe } from 'bun:test';
-import { ZU, attr, text } from './utilities';
+import { ZU, attr, text } from '../src/utilities';
 import { parseHTML } from 'linkedom';
 
 describe('ZU.trimInternal', () => {

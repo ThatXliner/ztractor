@@ -1,6 +1,6 @@
 import { test, expect, describe } from 'bun:test';
-import { parseHTMLDocument, executeDetectWeb, executeDoWeb } from './executor';
-import type { Translator } from './types';
+import { parseHTMLDocument, executeDetectWeb, executeDoWeb } from '../src/executor';
+import type { Translator } from '../src/types';
 
 const simpleTranslator: Translator = {
   metadata: {

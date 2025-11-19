@@ -1,8 +1,8 @@
 import { test, expect, describe } from 'bun:test';
-import { ZU } from './utilities';
-import { Item } from './item';
-import { parseTranslatorMetadata } from './translator-loader';
-import { parseHTMLDocument } from './executor';
+import { ZU } from '../src/utilities';
+import { Item } from '../src/item';
+import { parseTranslatorMetadata } from '../src/translator-loader';
+import { parseHTMLDocument } from '../src/executor';
 
 describe('ZU Edge Cases', () => {
   describe('trimInternal edge cases', () => {

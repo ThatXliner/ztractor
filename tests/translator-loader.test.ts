@@ -5,8 +5,8 @@ import {
   matchesTarget,
   findMatchingTranslators,
   getTranslatorById,
-} from './translator-loader';
-import type { Translator } from './types';
+} from '../src/translator-loader';
+import type { Translator } from '../src/types';
 
 const sampleTranslatorCode = `{
 \t"translatorID": "abc-123",
