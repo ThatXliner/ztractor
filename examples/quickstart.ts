@@ -1,60 +1,61 @@
 /**
- * Quick start example - demonstrates basic usage of Ztractor
+ * Simple example - shows basic library functionality
  */
 
-import { extractMetadata, findTranslators } from '../src/index';
+import { extractMetadata, findTranslators, getAvailableTranslators } from '../src/index';
 
 async function main() {
-  console.log('🚀 Ztractor Quick Start\n');
+  console.log('🚀 Ztractor - Simple Example\n');
 
-  // Example 1: Check which translators are available for a URL
-  const url = 'https://www.nytimes.com/article';
-  console.log(`Example 1: Finding translators for ${url}`);
-
-  const translators = await findTranslators(url);
-  console.log(`Found ${translators.length} matching translator(s):`);
-
-  translators.forEach((t, i) => {
+  // Example 1: List some available translators
+  console.log('Example 1: Available translators\n');
+  const allTranslators = await getAvailableTranslators();
+  console.log(`Total translators available: ${allTranslators.length}`);
+  console.log('\nSome examples:');
+  allTranslators.slice(0, 10).forEach((t, i) => {
     console.log(`  ${i + 1}. ${t.label} (priority: ${t.priority})`);
   });
 
   console.log('\n' + '='.repeat(60) + '\n');
 
-  // Example 2: Extract metadata from a real URL (fetches HTML automatically)
-  console.log('Example 2: Extracting metadata from arXiv...\n');
+  // Example 2: Find translators for specific URLs
+  console.log('Example 2: Finding translators for URLs\n');
 
-  const arxivUrl = 'https://arxiv.org/abs/1706.03762'; // "Attention Is All You Need" paper
-  console.log(`Fetching: ${arxivUrl}`);
+  const testUrls = [
+    'https://www.nytimes.com/article',
+    'https://en.wikipedia.org/wiki/Test',
+    'https://github.com/user/repo',
+    'https://www.youtube.com/watch?v=test',
+  ];
 
-  const result = await extractMetadata(arxivUrl);
-
-  if (result.success && result.items) {
-    console.log(`✅ Success! Used translator: ${result.translator}\n`);
-    const item = result.items[0];
-
-    console.log('Extracted metadata:');
-    console.log(`  Title: ${item.title}`);
-    if (item.creators && item.creators.length > 0) {
-      console.log(`  Authors: ${item.creators.slice(0, 3).map(c =>
-        c.lastName ? `${c.firstName} ${c.lastName}` : c.name
-      ).join(', ')}${item.creators.length > 3 ? ` (and ${item.creators.length - 3} more)` : ''}`);
+  for (const url of testUrls) {
+    const translators = await findTranslators(url);
+    if (translators.length > 0) {
+      console.log(`  ${url}`);
+      console.log(`    → ${translators[0].label}`);
     }
-    if (item.date) console.log(`  Date: ${item.date}`);
-    if (item.DOI) console.log(`  DOI: ${item.DOI}`);
-    if (item.abstractNote) {
-      const abstract = item.abstractNote.substring(0, 150);
-      console.log(`  Abstract: ${abstract}${item.abstractNote.length > 150 ? '...' : ''}`);
-    }
-
-    console.log('\n  Full metadata available in result.items[0]');
-  } else {
-    console.log(`❌ Failed: ${result.error}`);
   }
 
   console.log('\n' + '='.repeat(60) + '\n');
-  console.log('💡 Tip: You can also provide pre-fetched HTML:');
-  console.log('   const html = await fetch(url).then(r => r.text());');
-  console.log('   await extractMetadata({ url, html });');
+
+  // Example 3: How to extract metadata
+  console.log('Example 3: Extracting metadata\n');
+  console.log('To extract metadata from a real website:');
+  console.log('');
+  console.log('  // Automatically fetches HTML');
+  console.log('  const result = await extractMetadata("https://example.com/article");');
+  console.log('');
+  console.log('  // Or provide HTML yourself');
+  console.log('  const html = await fetch(url).then(r => r.text());');
+  console.log('  const result = await extractMetadata({ url, html });');
+  console.log('');
+  console.log('  if (result.success && result.items) {');
+  console.log('    console.log(result.items[0].title);');
+  console.log('    console.log(result.items[0].creators);');
+  console.log('    console.log(result.items[0].date);');
+  console.log('  }');
+
+  console.log('\n✅ All 682 translators bundled at build time - no runtime file I/O!');
 }
 
 if (import.meta.main) {

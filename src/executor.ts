@@ -2,10 +2,31 @@
  * Translator executor - runs translator code in a sandboxed environment
  */
 
-import { parseHTML } from 'linkedom';
+import { parseHTML, DOMParser as LinkedomDOMParser } from 'linkedom';
 import { Item } from './item';
 import { ZU, attr, text, request, requestText, requestJSON } from './utilities';
 import type { Translator, ZoteroItem, ItemType } from './types';
+
+/**
+ * Wrapped DOMParser that handles edge cases where linkedom fails
+ */
+class SafeDOMParser {
+  parseFromString(source: string, type: string): Document {
+    const parser = new LinkedomDOMParser();
+    const doc = parser.parseFromString(source, type);
+
+    // If parsing plain text or invalid content results in no documentElement,
+    // wrap it in a proper HTML structure to avoid linkedom errors
+    if (!doc.documentElement && type === 'text/html') {
+      const wrapped = `<html><body>${source}</body></html>`;
+      return parser.parseFromString(wrapped, type);
+    }
+
+    return doc;
+  }
+}
+
+const DOMParser = SafeDOMParser;
 
 /**
  * Execute a translator's detectWeb function
@@ -33,8 +54,8 @@ export async function executeDetectWeb(
       return null;
     `;
 
-    const fn = new Function('doc', 'url', 'Zotero', 'ZU', 'attr', 'text', code);
-    const result = fn(doc, url, sandbox.Zotero, ZU, attr, text);
+    const fn = new Function('doc', 'url', 'Zotero', 'ZU', 'attr', 'text', 'DOMParser', code);
+    const result = fn(doc, url, sandbox.Zotero, sandbox.ZU, attr, text, DOMParser);
 
     return result;
   } catch (e) {
@@ -82,10 +103,11 @@ export async function executeDoWeb(
         'request',
         'requestText',
         'requestJSON',
+        'DOMParser',
         code
       );
 
-      fn(doc, url, sandbox.Zotero, ZU, attr, text, request, requestText, requestJSON);
+      fn(doc, url, sandbox.Zotero, sandbox.ZU, attr, text, request, requestText, requestJSON, DOMParser);
 
       // Give translators a moment to complete async operations
       setTimeout(() => {
@@ -109,6 +131,25 @@ function createSandbox(
 ) {
   const items: Item[] = [];
   let selectItemsCallback: ((items: Record<string, string>) => void) | null = null;
+
+  // Create a wrapped ZU that resolves relative URLs
+  const wrappedZU = {
+    ...ZU,
+    async doGet(requestUrl: string, done?: (text: string) => void): Promise<string> {
+      // Resolve relative URLs against the page URL
+      const absoluteUrl = requestUrl.startsWith('/') || requestUrl.startsWith('./')
+        ? new URL(requestUrl, url).href
+        : requestUrl;
+      return ZU.doGet(absoluteUrl, done);
+    },
+    async doPost(requestUrl: string, body: string, done?: (text: string) => void): Promise<string> {
+      // Resolve relative URLs against the page URL
+      const absoluteUrl = requestUrl.startsWith('/') || requestUrl.startsWith('./')
+        ? new URL(requestUrl, url).href
+        : requestUrl;
+      return ZU.doPost(absoluteUrl, body, done);
+    },
+  };
 
   const sandbox = {
     Zotero: {
@@ -177,25 +218,19 @@ function createSandbox(
         return items;
       },
     },
+  };
 
-    // Zotero Utilities
-    ZU,
-
-    // Helper functions
+  return {
+    Zotero: sandbox.Zotero,
+    ZU: wrappedZU,
     attr,
     text,
-
-    // HTTP functions
     request,
     requestText,
     requestJSON,
-
-    // Global document and URL
     doc,
     url,
   };
-
-  return sandbox;
 }
 
 /**
@@ -203,6 +238,20 @@ function createSandbox(
  */
 export function parseHTMLDocument(html: string, url: string): Document {
   const { document } = parseHTML(html);
+
+  // Create a location-like object
+  const urlObj = new URL(url);
+  const location = {
+    href: url,
+    protocol: urlObj.protocol,
+    host: urlObj.host,
+    hostname: urlObj.hostname,
+    port: urlObj.port,
+    pathname: urlObj.pathname,
+    search: urlObj.search,
+    hash: urlObj.hash,
+    origin: urlObj.origin,
+  };
 
   // Add URL to document
   Object.defineProperty(document, 'URL', {
@@ -212,6 +261,11 @@ export function parseHTMLDocument(html: string, url: string): Document {
 
   Object.defineProperty(document, 'documentURI', {
     value: url,
+    writable: false,
+  });
+
+  Object.defineProperty(document, 'location', {
+    value: location,
     writable: false,
   });
 

@@ -379,12 +379,16 @@ export const ZU = {
    */
   async doGet(url: string, done?: (text: string) => void): Promise<string> {
     try {
+      if (!url || typeof url !== 'string') {
+        console.error(`doGet called with invalid URL:`, url);
+        throw new Error(`Invalid URL: ${url}`);
+      }
       const response = await fetch(url);
       const text = await response.text();
       if (done) done(text);
       return text;
     } catch (e) {
-      console.error('doGet error:', e);
+      console.error(`doGet error for URL "${url}":`, e);
       throw e;
     }
   },
