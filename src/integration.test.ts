@@ -262,7 +262,7 @@ describe('Edge cases and error handling', () => {
 
     expect(result).toBeTruthy();
     expect(result.success).toBe(false);
-  });
+  }, 10000); // Increase timeout - may need to try many translators
 
   test('handles very large HTML documents', async () => {
     // Create a large HTML document

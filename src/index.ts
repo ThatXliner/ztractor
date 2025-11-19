@@ -9,11 +9,9 @@ import type {
   Translator,
 } from './types';
 import { parseHTMLDocument, executeDetectWeb, executeDoWeb } from './executor';
-import { loadTranslator } from './translator-loader';
 
 // Will be generated at build time
 let translatorsRegistry: any;
-let getTranslatorCode: (filename: string) => Promise<string>;
 let findTranslatorsForUrl: (url: string) => any[];
 
 // Lazy load the registry
@@ -21,7 +19,6 @@ async function loadRegistry() {
   if (!translatorsRegistry) {
     const module = await import('./translators-registry');
     translatorsRegistry = module.TRANSLATORS_REGISTRY;
-    getTranslatorCode = module.getTranslatorCode;
     findTranslatorsForUrl = module.findTranslatorsForUrl;
   }
 }
@@ -97,13 +94,11 @@ export async function extractMetadata(
     // Try translators in priority order
     for (const entry of matchingTranslators) {
       try {
-        // Load translator code
-        const code = await getTranslatorCode(entry.filename);
-        const translator = loadTranslator(code, entry.filename);
-
-        if (!translator) {
-          continue;
-        }
+        // Translator code is already bundled in the entry
+        const translator: Translator = {
+          metadata: entry.metadata,
+          code: entry.code,
+        };
 
         // Check if translator can handle this page
         const itemType = await executeDetectWeb(translator, doc, url);

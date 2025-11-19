@@ -7,56 +7,54 @@ import { extractMetadata, findTranslators } from '../src/index';
 async function main() {
   console.log('🚀 Ztractor Quick Start\n');
 
-  // Example: Check which translators are available for a URL
+  // Example 1: Check which translators are available for a URL
   const url = 'https://www.nytimes.com/article';
-  console.log(`Finding translators for: ${url}`);
+  console.log(`Example 1: Finding translators for ${url}`);
 
   const translators = await findTranslators(url);
-  console.log(`Found ${translators.length} matching translator(s):\n`);
+  console.log(`Found ${translators.length} matching translator(s):`);
 
   translators.forEach((t, i) => {
-    console.log(`${i + 1}. ${t.label} (priority: ${t.priority})`);
+    console.log(`  ${i + 1}. ${t.label} (priority: ${t.priority})`);
   });
 
   console.log('\n' + '='.repeat(60) + '\n');
 
-  // Example: Extract metadata with inline HTML
-  const testUrl = 'https://example.com/test-article';
-  const testHtml = `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <title>Test Article</title>
-        <meta name="author" content="Jane Doe">
-        <meta name="description" content="This is a test article">
-        <meta property="og:title" content="Test Article - Example Site">
-        <meta property="og:type" content="article">
-        <meta property="article:published_time" content="2024-01-15T10:00:00Z">
-      </head>
-      <body>
-        <article>
-          <h1>Test Article</h1>
-          <p>Article content here...</p>
-        </article>
-      </body>
-    </html>
-  `;
+  // Example 2: Extract metadata from a real URL (fetches HTML automatically)
+  console.log('Example 2: Extracting metadata from arXiv...\n');
 
-  console.log('Extracting metadata from test HTML...\n');
+  const arxivUrl = 'https://arxiv.org/abs/1706.03762'; // "Attention Is All You Need" paper
+  console.log(`Fetching: ${arxivUrl}`);
 
-  const result = await extractMetadata({
-    url: testUrl,
-    html: testHtml,
-  });
+  const result = await extractMetadata(arxivUrl);
 
   if (result.success && result.items) {
     console.log(`✅ Success! Used translator: ${result.translator}\n`);
     const item = result.items[0];
+
     console.log('Extracted metadata:');
-    console.log(JSON.stringify(item, null, 2));
+    console.log(`  Title: ${item.title}`);
+    if (item.creators && item.creators.length > 0) {
+      console.log(`  Authors: ${item.creators.slice(0, 3).map(c =>
+        c.lastName ? `${c.firstName} ${c.lastName}` : c.name
+      ).join(', ')}${item.creators.length > 3 ? ` (and ${item.creators.length - 3} more)` : ''}`);
+    }
+    if (item.date) console.log(`  Date: ${item.date}`);
+    if (item.DOI) console.log(`  DOI: ${item.DOI}`);
+    if (item.abstractNote) {
+      const abstract = item.abstractNote.substring(0, 150);
+      console.log(`  Abstract: ${abstract}${item.abstractNote.length > 150 ? '...' : ''}`);
+    }
+
+    console.log('\n  Full metadata available in result.items[0]');
   } else {
     console.log(`❌ Failed: ${result.error}`);
   }
+
+  console.log('\n' + '='.repeat(60) + '\n');
+  console.log('💡 Tip: You can also provide pre-fetched HTML:');
+  console.log('   const html = await fetch(url).then(r => r.text());');
+  console.log('   await extractMetadata({ url, html });');
 }
 
 if (import.meta.main) {
