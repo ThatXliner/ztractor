@@ -55,9 +55,12 @@ The project uses a unique build-time bundling approach to eliminate runtime file
    - Sorts matches by priority (higher priority first)
 
 2. **DOM Parsing** (`src/executor.ts`):
-   - Uses linkedom to parse HTML into Document
+   - Uses linkedom to parse HTML into Document for fast DOM manipulation
    - Enhances Document with `URL`, `documentURI`, and `location` properties
    - Creates SafeDOMParser wrapper to handle edge cases
+   - **XPath Support**: Parses HTML with both linkedom (for DOM) and @xmldom/xmldom (for XPath)
+     - XPath queries execute on xmldom document using `xpath` library
+     - Results are mapped back to linkedom nodes by path for full compatibility
 
 3. **Sandboxed Execution** (`src/executor.ts`):
    - Creates isolated environment with Zotero API surface
@@ -70,7 +73,7 @@ The project uses a unique build-time bundling approach to eliminate runtime file
    - **`src/item.ts`** - Implements `Zotero.Item` class with all metadata fields
    - **`src/utilities.ts`** - Implements `ZU` (Zotero Utilities) helper functions
    - Provides `attr()`, `text()`, `request()` global helpers
-   - Implements XPath support with fallback to CSS selectors for linkedom
+   - Full XPath 1.0 support via hybrid linkedom/xmldom approach
 
 ### Key Components
 
@@ -101,8 +104,12 @@ Tests are in `tests/` directory (recently moved from `src/*.test.ts`):
 
 ### DOM Implementation
 
-- Uses linkedom (not jsdom or real browser) - lighter but has limitations
-- XPath support is limited - falls back to CSS selector conversion for simple cases
+- Uses linkedom (not jsdom or real browser) for DOM manipulation - fast and lightweight
+- **Full XPath 1.0 support** via hybrid approach:
+  - linkedom provides the main DOM for queries and manipulation
+  - @xmldom/xmldom + xpath library handle XPath evaluation
+  - Results automatically mapped between the two DOM implementations
+  - Supports complex XPath: axes (following-sibling, etc.), predicates, contains(), and more
 - No JavaScript execution on pages (static HTML only)
 - Some translators that require complex DOM APIs may not work
 
@@ -124,10 +131,13 @@ Tests are in `tests/` directory (recently moved from `src/*.test.ts`):
 ### Extending Zotero Utilities
 
 Add new utility functions to the `ZU` object in `src/utilities.ts`. Many translators depend on:
+- `ZU.xpath()` - Execute XPath queries and return nodes (full XPath 1.0 support)
 - `ZU.xpathText()` - Extract text via XPath
 - `ZU.cleanAuthor()` - Parse author names
 - `ZU.strToISO()` - Convert dates to ISO format
 - `ZU.cleanDOI()` / `cleanISBN()` / `cleanISSN()` - Clean identifiers
+
+Note: XPath queries are handled by the hybrid linkedom/xmldom system automatically.
 
 ### Debugging Translator Execution
 

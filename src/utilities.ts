@@ -27,51 +27,36 @@ export const ZU = {
     if (!doc) return [];
 
     try {
-      // linkedom doesn't support XPath, so fall back to querySelector for common cases
-      // This is a simplified implementation for basic XPath expressions
-      if (!doc.evaluate) {
-        // Try to convert simple XPath to CSS selector
-        const cssSelector = this.xpathToSelector(xpath);
-        if (cssSelector) {
-          const elements = doc.querySelectorAll(cssSelector);
-          return Array.from(elements) as Node[];
+      // Use document.evaluate if available (installed by executor)
+      if (doc.evaluate) {
+        // Note: createNSResolver is deprecated, just pass null for namespace resolver
+        // Most web translators don't use XML namespaces
+        const result = doc.evaluate(
+          xpath,
+          node,
+          null, // namespace resolver (deprecated createNSResolver)
+          0, // ANY_TYPE
+          null
+        );
+
+        const nodes: Node[] = [];
+        let item = result.iterateNext ? result.iterateNext() : null;
+        while (item) {
+          nodes.push(item);
+          item = result.iterateNext();
         }
-        return [];
+        return nodes;
       }
 
-      const nsResolver = doc.createNSResolver?.(
-        doc.documentElement || (doc as any)
-      );
-
-      // XPathResult might not be in global scope with linkedom
-      const XPathResult = (globalThis as any).XPathResult || {
-        ANY_TYPE: 0,
-        NUMBER_TYPE: 1,
-        STRING_TYPE: 2,
-        BOOLEAN_TYPE: 3,
-        UNORDERED_NODE_ITERATOR_TYPE: 4,
-        ORDERED_NODE_ITERATOR_TYPE: 5,
-        UNORDERED_NODE_SNAPSHOT_TYPE: 6,
-        ORDERED_NODE_SNAPSHOT_TYPE: 7,
-        ANY_UNORDERED_NODE_TYPE: 8,
-        FIRST_ORDERED_NODE_TYPE: 9,
-      };
-
-      const result = doc.evaluate(
-        xpath,
-        node,
-        nsResolver,
-        XPathResult.ANY_TYPE || 0,
-        null
-      );
-
-      const nodes: Node[] = [];
-      let item = result.iterateNext ? result.iterateNext() : null;
-      while (item) {
-        nodes.push(item);
-        item = result.iterateNext();
+      // Fallback to CSS selector conversion for simple cases
+      const cssSelector = this.xpathToSelector(xpath);
+      if (cssSelector) {
+        const elements = doc.querySelectorAll(cssSelector);
+        return Array.from(elements) as Node[];
       }
-      return nodes;
+
+      console.warn('XPath not supported and no CSS fallback available:', xpath);
+      return [];
     } catch (e) {
       console.error('XPath error:', e);
       return [];
