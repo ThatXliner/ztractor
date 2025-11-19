@@ -1,0 +1,43 @@
+# Development files
+tests/
+build/
+translators/
+.github/
+.vscode/
+.idea/
+
+# Configuration files
+tsconfig.json
+.gitignore
+.gitmodules
+.eslintrc*
+.prettierrc*
+
+# Test and coverage
+*.test.ts
+*.spec.ts
+coverage/
+*.lcov
+
+# Build artifacts (keep dist/)
+*.tsbuildinfo
+
+# Logs and caches
+*.log
+.cache/
+.eslintcache
+
+# Environment files
+.env*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Source TypeScript files (keep them for source maps)
+# But exclude tests
+src/**/*.test.ts
+src/**/*.spec.ts
+
+# Misc
+*.tgz
