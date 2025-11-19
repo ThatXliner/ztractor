@@ -1,0 +1,29 @@
+{
+  "name": "ztractor",
+  "version": "0.1.0",
+  "description": "Use Zotero translators to extract metadata from websites",
+  "module": "dist/index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "bun build/bundle-translators.ts && bun build src/index.ts --outdir dist --target node --format esm",
+    "test": "bun test",
+    "prepare": "bun run build"
+  },
+  "dependencies": {
+    "linkedom": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  }
+}
