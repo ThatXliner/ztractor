@@ -8,7 +8,8 @@ export function parseTranslatorMetadata(
 ): TranslatorMetadata | null {
   try {
     // Extract JSON from the first comment block
-    const match = code.match(/^\s*({[\s\S]*?})\s*\n/);
+    // Allow optional newline after the closing brace
+    const match = code.match(/^\s*({[\s\S]*?})(?:\s*\n|$)/);
     if (!match) return null;
 
     const metadata = JSON.parse(match[1]) as TranslatorMetadata;

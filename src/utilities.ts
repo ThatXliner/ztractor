@@ -27,19 +27,46 @@ export const ZU = {
     if (!doc) return [];
 
     try {
+      // linkedom doesn't support XPath, so fall back to querySelector for common cases
+      // This is a simplified implementation for basic XPath expressions
+      if (!doc.evaluate) {
+        // Try to convert simple XPath to CSS selector
+        const cssSelector = this.xpathToSelector(xpath);
+        if (cssSelector) {
+          const elements = doc.querySelectorAll(cssSelector);
+          return Array.from(elements) as Node[];
+        }
+        return [];
+      }
+
       const nsResolver = doc.createNSResolver?.(
         doc.documentElement || (doc as any)
       );
+
+      // XPathResult might not be in global scope with linkedom
+      const XPathResult = (globalThis as any).XPathResult || {
+        ANY_TYPE: 0,
+        NUMBER_TYPE: 1,
+        STRING_TYPE: 2,
+        BOOLEAN_TYPE: 3,
+        UNORDERED_NODE_ITERATOR_TYPE: 4,
+        ORDERED_NODE_ITERATOR_TYPE: 5,
+        UNORDERED_NODE_SNAPSHOT_TYPE: 6,
+        ORDERED_NODE_SNAPSHOT_TYPE: 7,
+        ANY_UNORDERED_NODE_TYPE: 8,
+        FIRST_ORDERED_NODE_TYPE: 9,
+      };
+
       const result = doc.evaluate(
         xpath,
         node,
         nsResolver,
-        XPathResult.ANY_TYPE,
+        XPathResult.ANY_TYPE || 0,
         null
       );
 
       const nodes: Node[] = [];
-      let item = result.iterateNext();
+      let item = result.iterateNext ? result.iterateNext() : null;
       while (item) {
         nodes.push(item);
         item = result.iterateNext();
@@ -49,6 +76,35 @@ export const ZU = {
       console.error('XPath error:', e);
       return [];
     }
+  },
+
+  /**
+   * Convert simple XPath expressions to CSS selectors
+   */
+  xpathToSelector(xpath: string): string | null {
+    // Handle very simple cases
+    if (xpath.startsWith('//')) {
+      const simplified = xpath.slice(2);
+
+      // //tagname
+      if (/^[a-z]+$/i.test(simplified)) {
+        return simplified;
+      }
+
+      // //tagname[@attr="value"]
+      const attrMatch = simplified.match(/^([a-z]+)\[@([^=]+)="([^"]+)"\]$/i);
+      if (attrMatch) {
+        return `${attrMatch[1]}[${attrMatch[2]}="${attrMatch[3]}"]`;
+      }
+
+      // //tagname[@attr]
+      const attrOnlyMatch = simplified.match(/^([a-z]+)\[@([^\]]+)\]$/i);
+      if (attrOnlyMatch) {
+        return `${attrOnlyMatch[1]}[${attrOnlyMatch[2]}]`;
+      }
+    }
+
+    return null;
   },
 
   /**
@@ -285,7 +341,7 @@ export const ZU = {
    */
   cleanISBN(isbn: string): string {
     if (!isbn) return '';
-    return isbn.replace(/[^0-9X]/gi, '');
+    return isbn.replace(/[^0-9X]/gi, '').toUpperCase();
   },
 
   /**

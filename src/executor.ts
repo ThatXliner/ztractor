@@ -93,7 +93,8 @@ export async function executeDoWeb(
       }, 100);
     } catch (e) {
       console.error(`Error executing doWeb for ${translator.metadata.label}:`, e);
-      reject(e);
+      // Return empty array on error instead of rejecting
+      resolve([]);
     }
   });
 }
