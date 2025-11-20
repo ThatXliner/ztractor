@@ -70,21 +70,31 @@ export function parseHTMLDocument(html: string, url: string): Document {
  * Uses xmldom for XPath queries, then maps results back to linkedom nodes
  */
 function installXPathSupport(linkedomDoc: any, html: string): void {
-  // Create a silent error handler for xmldom to suppress HTML parsing warnings
-  const silentErrorHandler = {
-    warning: () => {}, // Suppress warnings about HTML syntax in XML mode
+  // Prepare HTML for XML parsing by protecting script/style tag contents
+  // Script tags contain JavaScript which is not valid XML and causes parse errors
+  const cleanedHtml = html
+    // Replace script tag contents with placeholder to prevent XML parsing errors
+    .replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gi, '<script>__SCRIPT_CONTENT__</script>')
+    // Replace style tag contents with placeholder
+    .replace(/<style\b[^>]*>([\s\S]*?)<\/style>/gi, '<style>__STYLE_CONTENT__</style>')
+    // Fix common HTML entities that xmldom doesn't recognize
+    .replace(/&nbsp;/g, '&#160;');
+
+  // Create error handler for remaining parse issues
+  const errorHandler = {
+    warning: () => {},
     error: (msg: string) => {
-      // Only log actual errors, not warnings
-      if (msg && !msg.includes('unclosed') && !msg.includes('warning')) {
-        console.error('[xmldom]', msg);
+      // Log unexpected errors for debugging, but don't crash
+      if (process.env.DEBUG_XPATH) {
+        console.warn('[xmldom parse warning]', msg);
       }
     },
-    fatalError: (msg: string) => console.error('[xmldom fatal]', msg)
+    fatalError: () => {}
   };
 
   // Parse with xmldom for XPath support
-  const xmlParser = new XMLDOMParser({ errorHandler: silentErrorHandler });
-  const xmlDoc = xmlParser.parseFromString(html, 'text/xml');
+  const xmlParser = new XMLDOMParser({ errorHandler });
+  const xmlDoc = xmlParser.parseFromString(cleanedHtml, 'text/xml');
 
   // Store xmldom document for XPath queries
   const xmlDocRef = xmlDoc;

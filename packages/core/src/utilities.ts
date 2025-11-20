@@ -1138,46 +1138,11 @@ export const ZU = {
 };
 
 /**
- * Global helper functions for modern translators
+ * NOTE: Request functions (request, requestText, requestJSON, requestDocument)
+ * are provided by the translator sandbox and are NOT exported from utilities.
+ * They are created by createSandboxRequestFunctions() in translator-sandbox.ts
+ * with proper URL resolution and DOM parsing support.
  */
-
-export async function request(
-  url: string,
-  options?: RequestInit
-): Promise<{ body: string; status: number; headers: Headers }> {
-  const response = await fetch(url, options);
-  const body = await response.text();
-  return {
-    body,
-    status: response.status,
-    headers: response.headers,
-  };
-}
-
-export async function requestText(
-  url: string,
-  options?: RequestInit
-): Promise<string> {
-  const response = await fetch(url, options);
-  return response.text();
-}
-
-export async function requestJSON(
-  url: string,
-  options?: RequestInit
-): Promise<any> {
-  const response = await fetch(url, options);
-  return response.json();
-}
-
-export async function requestDocument(
-  url: string,
-  options?: RequestInit
-): Promise<Document> {
-  // This function should be injected by the executor with proper DOM parsing
-  // If called directly, throw a helpful error
-  throw new Error('requestDocument must be injected by executor with proper DOM parsing dependencies');
-}
 
 /**
  * Helper functions available in translator context
