@@ -17,6 +17,7 @@ export async function extractMetadata(
     dependencies: {
       DOMParser: DOMParser as any,
       parseHTMLDocument,
+      ...(typeof options !== 'string' ? options?.dependencies : null) ?? {}
     },
   });
 }

@@ -46,212 +46,20 @@ This package is optimized for Node.js environments:
 
 For browser environments, use the `ztractor` package instead, which uses native browser APIs.
 
-## Features
+## API Reference
 
-- **600+ translators** - Support for academic journals, news sites, blogs, and more
-- **TypeScript-native** - Full type definitions for all metadata fields
-- **Zero config** - All translators bundled at build time
-- **Fast** - linkedom provides excellent performance
-- **XPath 1.0** - Full support for complex XPath queries
+The API is identical to the core `ztractor` package. See the [core package README](../core/README.md) for complete documentation on:
 
-## API
+- **API Functions**: `extractMetadata()`, `findTranslators()`, `getAvailableTranslators()`
+- **Metadata Structure**: `ZoteroItem` interface, item types, creator types
+- **Supported Sites**: Complete list of 600+ supported websites
+- **Usage Examples**: News articles, academic papers, batch processing, etc.
 
-### `extractMetadata(options)`
-
-Extract metadata from a URL.
-
-**Parameters:**
-
-- `options`: `string | ExtractMetadataOptions`
-  - If string: The URL to extract from (HTML will be fetched automatically)
-  - If object:
-    - `url` (string, required): The URL to extract from
-    - `html` (string, optional): Pre-fetched HTML content
-    - `headers` (object, optional): Custom HTTP headers for fetching
-    - `timeout` (number, optional): Timeout in milliseconds (default: 10000)
-
-**Returns:** `Promise<ExtractMetadataResult>`
-
-```typescript
-interface ExtractMetadataResult {
-  success: boolean;
-  items?: ZoteroItem[];      // Extracted metadata
-  error?: string;            // Error message if failed
-  translator?: string;       // Name of translator used
-}
-```
-
-**Examples:**
-
-```typescript
-// Basic usage - URL only
-const result = await extractMetadata('https://example.com/article');
-
-// With options
-const result = await extractMetadata({
-  url: 'https://example.com/article',
-  timeout: 5000,
-  headers: {
-    'User-Agent': 'MyApp/1.0',
-  },
-});
-
-// With pre-fetched HTML
-const html = await fetch('https://example.com').then(r => r.text());
-const result = await extractMetadata({
-  url: 'https://example.com',
-  html,
-});
-```
-
-### `findTranslators(url)`
-
-Find translators that match a URL.
-
-```typescript
-const translators = await findTranslators('https://www.nytimes.com');
-// Returns array of matching translators with their metadata
-```
-
-### `getAvailableTranslators()`
-
-Get list of all available translators.
-
-```typescript
-const all = await getAvailableTranslators();
-console.log(`${all.length} translators available`);
-```
-
-## Metadata Structure
-
-Extracted items follow Zotero's metadata schema:
-
-```typescript
-interface ZoteroItem {
-  itemType: string;          // "journalArticle", "book", "webpage", etc.
-  title?: string;
-  creators?: Creator[];      // Authors, editors, etc.
-  abstractNote?: string;
-  publicationTitle?: string; // Journal/publication name
-  volume?: string;
-  issue?: string;
-  pages?: string;
-  date?: string;             // ISO format
-  DOI?: string;
-  ISBN?: string;
-  ISSN?: string;
-  url?: string;
-  tags?: Tag[];
-  // ... and many more fields
-}
-```
-
-### Item Types
-
-Supported item types include:
-
-- `journalArticle` - Academic journal articles
-- `newspaperArticle` - News articles
-- `blogPost` - Blog posts
-- `webpage` - Generic web pages
-- `book` - Books
-- `videoRecording` - Videos
-- `podcast` - Podcasts
-- And 30+ more types
-
-### Creator Types
-
-Creators can have different roles:
-
-```typescript
-interface Creator {
-  firstName?: string;
-  lastName?: string;
-  name?: string;           // For single-field names
-  creatorType: string;     // "author", "editor", "translator", etc.
-}
-```
-
-## Supported Sites
-
-Ztractor supports 600+ websites through Zotero translators, including:
-
-**Academic:**
-- ArXiv, PubMed, Google Scholar
-- ScienceDirect, Springer, Wiley
-- JSTOR, Project MUSE
-- IEEE, ACM Digital Library
-
-**News & Media:**
-- New York Times, The Guardian, BBC
-- CNN, Reuters, Associated Press
-- Medium, Substack
-
-**Reference:**
-- Wikipedia, Encyclopedia Britannica
-- Library catalogs worldwide
-
-**And many more!** Check `getAvailableTranslators()` for the full list.
-
-## Examples
-
-### Extract from a news article
-
-```typescript
-const result = await extractMetadata({
-  url: 'https://www.nytimes.com/2024/01/15/technology/ai-advances.html',
-});
-
-if (result.success) {
-  const article = result.items[0];
-  console.log(`Title: ${article.title}`);
-  console.log(`Authors: ${article.creators.map(c => `${c.firstName} ${c.lastName}`).join(', ')}`);
-  console.log(`Date: ${article.date}`);
-  console.log(`Publication: ${article.publicationTitle}`);
-}
-```
-
-### Extract from an academic paper
-
-```typescript
-const result = await extractMetadata({
-  url: 'https://arxiv.org/abs/2401.12345',
-});
-
-if (result.success) {
-  const paper = result.items[0];
-  console.log(`Title: ${paper.title}`);
-  console.log(`Abstract: ${paper.abstractNote}`);
-  console.log(`Authors: ${paper.creators.map(c => c.lastName).join(', ')}`);
-}
-```
-
-### Batch processing
-
-```typescript
-const urls = [
-  'https://example.com/article1',
-  'https://example.com/article2',
-  'https://example.com/article3',
-];
-
-const results = await Promise.all(
-  urls.map(url => extractMetadata({ url }))
-);
-
-results.forEach((result, i) => {
-  if (result.success) {
-    console.log(`${result.items[0].title}`);
-  } else {
-    console.log(`Failed: ${result.error}`);
-  }
-});
-```
-
-### Export to JSON
+### Node.js-Specific Example
 
 ```typescript
 import { writeFile } from 'fs/promises';
+import { extractMetadata } from 'ztractor-node';
 
 const result = await extractMetadata('https://example.com/article');
 
@@ -287,14 +95,6 @@ This provides full XPath 1.0 support including:
 - **Static HTML only**: Does not execute JavaScript on pages. No headless browser.
 - **Web translators only**: Currently only supports web translators (type 4). Import/export translators are not included.
 - **Async handling**: Some complex translators that fetch multiple pages may not work perfectly.
-
-## Performance
-
-Benchmarks show linkedom is significantly faster than alternatives:
-
-- ~10x faster than jsdom for typical scraping tasks
-- No browser overhead like puppeteer/playwright
-- Small memory footprint
 
 ## License
 
