@@ -92,9 +92,9 @@ This provides full XPath 1.0 support including:
 
 ## Limitations
 
+As with the original Ztractor:
 - **Static HTML only**: Does not execute JavaScript on pages. No headless browser.
 - **Web translators only**: Currently only supports web translators (type 4). Import/export translators are not included.
-- **Async handling**: Some complex translators that fetch multiple pages may not work perfectly.
 
 ## License
 
