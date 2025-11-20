@@ -1,5 +1,6 @@
 {
   "name": "ztractor-monorepo",
+  "private": true,
   "version": "0.1.0",
   "description": "Use Zotero translators to extract metadata from websites",
   "author": "Bryan Hu",
@@ -18,10 +19,6 @@
   "scripts": {
     "build": "bun build/bundle-translators.ts && bun run --filter '*' build",
     "test": "bun run --filter '*' test"
-  },
-  "devDependencies": {
-    "@types/bun": "latest",
-    "typescript": "^5"
   },
   "engines": {
     "node": ">=18.0.0"
