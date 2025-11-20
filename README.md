@@ -51,6 +51,25 @@ if (result.success && result.items) {
 - **Isomorphic** - Works in both Node.js and browsers
 - **Lightweight** - Fast DOM parsing with native APIs or linkedom
 
+## Supported Sites
+
+Ztractor supports 600+ websites through Zotero translators, including:
+
+**Academic:**
+- ArXiv, PubMed, Google Scholar
+- ScienceDirect, Springer, Wiley
+- JSTOR, Project MUSE
+- IEEE, ACM Digital Library
+
+**News & Media:**
+- New York Times, The Guardian, BBC
+- CNN, Reuters, Associated Press
+- Medium, Substack
+
+**Reference:**
+- Wikipedia, Encyclopedia Britannica
+- Library catalogs worldwide
+
 ## API
 
 ### `extractMetadata(options)`
@@ -120,27 +139,6 @@ interface ZoteroItem {
 }
 ```
 
-## Supported Sites
-
-Ztractor supports 600+ websites through Zotero translators, including:
-
-**Academic:**
-- ArXiv, PubMed, Google Scholar
-- ScienceDirect, Springer, Wiley
-- JSTOR, Project MUSE
-- IEEE, ACM Digital Library
-
-**News & Media:**
-- New York Times, The Guardian, BBC
-- CNN, Reuters, Associated Press
-- Medium, Substack
-
-**Reference:**
-- Wikipedia, Encyclopedia Britannica
-- Library catalogs worldwide
-
-Check `getAvailableTranslators()` for the full list.
-
 ## Examples
 
 ### With pre-fetched HTML
@@ -185,11 +183,6 @@ results.forEach((result, i) => {
   }
 });
 ```
-
-
-## Supported Sites
-
-Ztractor supports 600+ websites including academic publishers (ArXiv, PubMed, JSTOR), news sites (NYT, Guardian, BBC), and many more. See the package READMEs for a complete list.
 
 ## Development
 
