@@ -1,7 +1,7 @@
 {
     "name": "ztractor",
     "description": "Extract metadata from websites using Zotero's 600+ translators",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "type": "module",
     "author": "Bryan Hu",
     "license": "AGPL-3.0-or-later",
