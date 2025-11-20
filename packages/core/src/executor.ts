@@ -3,7 +3,7 @@
  */
 
 import { Item } from './item';
-import { ZU, attr, text, request, requestText, requestJSON } from './utilities';
+import { ZU, attr, text, request, requestText, requestJSON, requestDocument as baseRequestDocument } from './utilities';
 import type { Translator, ZoteroItem, ItemType, ExtractMetadataOptions } from './types';
 
 type ExecutorDependencies = NonNullable<ExtractMetadataOptions['dependencies']>;
@@ -35,8 +35,8 @@ export async function executeDetectWeb(
       return null;
     `;
 
-    const fn = new Function('doc', 'url', 'Zotero', 'ZU', 'attr', 'text', 'DOMParser', code);
-    const result = fn(doc, url, sandbox.Zotero, sandbox.ZU, attr, text, dependencies.DOMParser);
+    const fn = new Function('doc', 'url', 'Zotero', 'Z', 'ZU', 'attr', 'text', 'DOMParser', code);
+    const result = fn(doc, url, sandbox.Zotero, sandbox.Zotero, sandbox.ZU, attr, text, dependencies.DOMParser);
 
     return result;
   } catch (e) {
@@ -79,17 +79,19 @@ export async function executeDoWeb(
         'doc',
         'url',
         'Zotero',
+        'Z',
         'ZU',
         'attr',
         'text',
         'request',
         'requestText',
         'requestJSON',
+        'requestDocument',
         'DOMParser',
         code
       );
 
-      fn(doc, url, sandbox.Zotero, sandbox.ZU, attr, text, request, requestText, requestJSON, dependencies.DOMParser);
+      fn(doc, url, sandbox.Zotero, sandbox.Zotero, sandbox.ZU, attr, text, request, requestText, requestJSON, sandbox.requestDocument, dependencies.DOMParser);
 
       // Give translators a moment to complete async operations
       setTimeout(() => {
@@ -115,7 +117,7 @@ function createSandbox(
   const items: Item[] = [];
   let selectItemsCallback: ((items: Record<string, string>) => void) | null = null;
 
-  // Create a wrapped ZU that resolves relative URLs
+  // Create a wrapped ZU that resolves relative URLs and injects processDocuments
   const wrappedZU = {
     ...ZU,
     async doGet(requestUrl: string, done?: (text: string) => void): Promise<string> {
@@ -132,6 +134,35 @@ function createSandbox(
         : requestUrl;
       return ZU.doPost(absoluteUrl, body, done);
     },
+    // Inject working processDocuments implementation
+    async processDocuments(
+      urls: string[],
+      processor: (doc: Document, url: string) => void | Promise<void>,
+      done?: () => void
+    ): Promise<void> {
+      for (const docUrl of urls) {
+        try {
+          // Resolve relative URLs
+          const absoluteUrl = docUrl.startsWith('/') || docUrl.startsWith('./')
+            ? new URL(docUrl, url).href
+            : docUrl;
+
+          // Fetch and parse document
+          const html = await fetch(absoluteUrl).then(r => r.text());
+          const processDoc = parseHTMLDocument(html, absoluteUrl, dependencies);
+
+          // Call processor
+          await processor(processDoc, absoluteUrl);
+        } catch (e) {
+          console.error(`Error processing document ${docUrl}:`, e);
+        }
+      }
+
+      // Call done callback if provided
+      if (done) {
+        done();
+      }
+    }
   };
 
   const sandbox = {
@@ -151,14 +182,19 @@ function createSandbox(
 
       /**
        * Select items (for 'multiple' type)
+       * Returns a promise if no callback is provided
        */
       selectItems(
         itemList: Record<string, string>,
-        callback: (selectedItems: Record<string, string> | null) => void
+        callback?: (selectedItems: Record<string, string> | null) => void
       ) {
         // In a real browser extension, this would show a dialog
         // For our purposes, we'll select all items
-        callback(itemList);
+        if (callback) {
+          callback(itemList);
+        } else {
+          return Promise.resolve(itemList);
+        }
       },
 
       /**
@@ -188,11 +224,52 @@ function createSandbox(
       /**
        * Debug logging
        */
-      debug(message: string) {
+      debug(message: string, level?: number) {
         // Check if we're in a debug mode (browser doesn't have process.env)
         if (typeof process !== 'undefined' && process.env?.DEBUG_TRANSLATORS) {
-          console.log('[Translator Debug]', message);
+          const logLevel = level !== undefined ? level : 3;
+          console.log(`[Translator Debug:${logLevel}]`, message);
         }
+      },
+
+      /**
+       * Get hidden preference value
+       */
+      getHiddenPref(pref: string): any {
+        // Hidden preferences can be used for translator-specific configuration
+        // For now, return sensible defaults
+        const prefs: Record<string, any> = {
+          'attachSupplementary': false, // Don't attach supplementary materials by default
+          'supplementaryAsLink': false, // Don't use links for supplementary materials
+          'automaticSnapshots': false, // Don't create automatic snapshots
+          'automaticPDFs': true, // Do download PDFs when available
+        };
+        return prefs[pref];
+      },
+
+      /**
+       * Get translator option value
+       */
+      getOption(option: string): any {
+        // Translator options would be set via displayOptions in translator metadata
+        // For now, return undefined (no options set)
+        return undefined;
+      },
+
+      /**
+       * Set detection return value for async detection
+       */
+      done(returnValue?: any) {
+        // This is used in async detectWeb implementations
+        // For our synchronous approach, this is a no-op
+        return returnValue;
+      },
+
+      /**
+       * Log an error
+       */
+      logError(err: Error) {
+        console.error('[Translator Error]', err);
       },
 
       /**
@@ -204,6 +281,18 @@ function createSandbox(
     },
   };
 
+  // Create wrapped requestDocument with proper DOM parsing
+  const wrappedRequestDocument = async (requestUrl: string, options?: RequestInit): Promise<Document> => {
+    // Resolve relative URLs
+    const absoluteUrl = requestUrl.startsWith('/') || requestUrl.startsWith('./')
+      ? new URL(requestUrl, url).href
+      : requestUrl;
+
+    // Fetch and parse
+    const html = await fetch(absoluteUrl, options).then(r => r.text());
+    return parseHTMLDocument(html, absoluteUrl, dependencies);
+  };
+
   return {
     Zotero: sandbox.Zotero,
     ZU: wrappedZU,
@@ -212,6 +301,7 @@ function createSandbox(
     request,
     requestText,
     requestJSON,
+    requestDocument: wrappedRequestDocument,
     doc,
     url,
   };
