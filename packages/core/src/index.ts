@@ -9,7 +9,10 @@ import type {
   ZoteroItem,
   Translator,
 } from './types';
-import { parseHTMLDocument, executeDetectWeb, executeDoWeb } from './executor';
+export { parseHTMLDocument, executeDetectWeb, executeDoWeb } from './executor';
+export { Item } from './item';
+export { ZU } from './utilities';
+export { parseTranslatorMetadata } from './translator-loader';
 
 // Will be generated at build time
 let translatorsRegistry: any;

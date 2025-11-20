@@ -1,6 +1,6 @@
 import { test, expect, describe } from 'bun:test';
-import { ZU } from '../src/utilities';
-import { Item } from '../src/item';
+import { extractMetadata } from '../src/index';
+import { ZU, Item } from 'ztractor';
 import { parseTranslatorMetadata } from '../src/translator-loader';
 
 describe('Zotero Utilities', () => {
