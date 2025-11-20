@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "description": "Use Zotero translators to extract metadata from websites",
   "author": "Bryan Hu",
-  "license": "MIT",
+  "license": "AGPL-3.0-or-later",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ThatXliner/ztractor.git"
