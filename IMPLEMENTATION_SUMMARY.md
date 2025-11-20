@@ -147,13 +147,23 @@ Uses native RegExp with Unicode flag when possible for performance.
 ```
 packages/core/src/
 ├── utilities.ts (main utilities file - expanded to ~1200 lines)
+├── translator-sandbox.ts (NEW - centralized sandbox request wrappers)
 ├── schema/
 │   └── zotero-schema.ts (comprehensive item type schema)
 ├── xregexp-polyfill.ts (XRegExp polyfill)
-├── executor.ts (enhanced with processDocuments and requestDocument)
+├── executor.ts (refactored to use translator-sandbox module)
 └── tests/
     └── new-utilities.test.ts (39 new tests, all passing)
 ```
+
+### Key Architecture Improvement
+
+Created **`translator-sandbox.ts`** - a dedicated module for all translator-specific utilities:
+- **Single source of truth** for request wrappers (request, requestText, requestJSON, requestDocument)
+- **Centralized URL resolution** - all relative URLs resolved in one place
+- **Proper DOM parsing injection** - requestDocument and processDocuments use correct parsing
+- **Clean separation** - translator utilities separate from general utilities
+- **Maintainable** - no duplication between utilities.ts and executor.ts
 
 ## Test Results
 

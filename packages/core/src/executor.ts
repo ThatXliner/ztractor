@@ -297,48 +297,16 @@ function createSandbox(
     },
   };
 
-  // Create wrapped request functions with relative URL resolution
-  const wrappedRequest = async (requestUrl: string, options?: RequestInit) => {
-    const absoluteUrl = requestUrl.startsWith('/') || requestUrl.startsWith('./')
-      ? new URL(requestUrl, url).href
-      : requestUrl;
-    return request(absoluteUrl, options);
-  };
-
-  const wrappedRequestText = async (requestUrl: string, options?: RequestInit) => {
-    const absoluteUrl = requestUrl.startsWith('/') || requestUrl.startsWith('./')
-      ? new URL(requestUrl, url).href
-      : requestUrl;
-    return requestText(absoluteUrl, options);
-  };
-
-  const wrappedRequestJSON = async (requestUrl: string, options?: RequestInit) => {
-    const absoluteUrl = requestUrl.startsWith('/') || requestUrl.startsWith('./')
-      ? new URL(requestUrl, url).href
-      : requestUrl;
-    return requestJSON(absoluteUrl, options);
-  };
-
-  const wrappedRequestDocument = async (requestUrl: string, options?: RequestInit): Promise<Document> => {
-    // Resolve relative URLs
-    const absoluteUrl = requestUrl.startsWith('/') || requestUrl.startsWith('./')
-      ? new URL(requestUrl, url).href
-      : requestUrl;
-
-    // Fetch and parse
-    const html = await fetch(absoluteUrl, options).then(r => r.text());
-    return parseHTMLDocument(html, absoluteUrl, dependencies);
-  };
-
+  // Return sandbox with all wrapped functions from centralized module
   return {
     Zotero: sandbox.Zotero,
     ZU: wrappedZU,
     attr,
     text,
-    request: wrappedRequest,
-    requestText: wrappedRequestText,
-    requestJSON: wrappedRequestJSON,
-    requestDocument: wrappedRequestDocument,
+    request: sandboxRequests.request,
+    requestText: sandboxRequests.requestText,
+    requestJSON: sandboxRequests.requestJSON,
+    requestDocument: sandboxRequests.requestDocument,
     doc,
     url,
   };

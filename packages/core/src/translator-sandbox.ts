@@ -1,18 +1,20 @@
 /**
  * Translator Sandbox Utilities
  *
- * This module provides wrapped versions of utility functions for use in translator sandboxes.
+ * This module provides request functions for use in translator sandboxes.
  * All functions resolve relative URLs against the page URL and handle DOM parsing properly.
+ *
+ * NOTE: These are self-contained implementations, not wrappers around utilities.ts,
+ * to avoid circular dependencies and keep sandbox utilities independent.
  */
 
-import { request, requestText, requestJSON } from './utilities';
 import { parseHTMLDocument } from './executor';
 import type { ExtractMetadataOptions } from './types';
 
 type ExecutorDependencies = NonNullable<ExtractMetadataOptions['dependencies']>;
 
 /**
- * Create wrapped request functions that resolve relative URLs
+ * Create sandbox request functions that resolve relative URLs
  */
 export function createSandboxRequestFunctions(
   pageUrl: string,
@@ -29,43 +31,54 @@ export function createSandboxRequestFunctions(
   };
 
   /**
-   * Wrapped request() - Returns response object with body, status, headers
+   * request() - Returns response object with body, status, headers
+   * Resolves relative URLs and fetches content
    */
-  const wrappedRequest = async (
+  const request = async (
     requestUrl: string,
     options?: RequestInit
   ): Promise<{ body: string; status: number; headers: Headers }> => {
     const absoluteUrl = resolveUrl(requestUrl);
-    return request(absoluteUrl, options);
+    const response = await fetch(absoluteUrl, options);
+    const body = await response.text();
+    return {
+      body,
+      status: response.status,
+      headers: response.headers,
+    };
   };
 
   /**
-   * Wrapped requestText() - Returns text response
+   * requestText() - Returns text response
+   * Resolves relative URLs and fetches text content
    */
-  const wrappedRequestText = async (
+  const requestText = async (
     requestUrl: string,
     options?: RequestInit
   ): Promise<string> => {
     const absoluteUrl = resolveUrl(requestUrl);
-    return requestText(absoluteUrl, options);
+    const response = await fetch(absoluteUrl, options);
+    return response.text();
   };
 
   /**
-   * Wrapped requestJSON() - Returns parsed JSON response
+   * requestJSON() - Returns parsed JSON response
+   * Resolves relative URLs and fetches/parses JSON
    */
-  const wrappedRequestJSON = async (
+  const requestJSON = async (
     requestUrl: string,
     options?: RequestInit
   ): Promise<any> => {
     const absoluteUrl = resolveUrl(requestUrl);
-    return requestJSON(absoluteUrl, options);
+    const response = await fetch(absoluteUrl, options);
+    return response.json();
   };
 
   /**
-   * Wrapped requestDocument() - Fetches, parses, and returns Document
+   * requestDocument() - Fetches, parses, and returns Document
    * This is the critical function that requires proper DOM parsing
    */
-  const wrappedRequestDocument = async (
+  const requestDocument = async (
     requestUrl: string,
     options?: RequestInit
   ): Promise<Document> => {
@@ -79,10 +92,10 @@ export function createSandboxRequestFunctions(
   };
 
   /**
-   * Wrapped processDocuments() - Fetches and processes multiple documents
+   * processDocuments() - Fetches and processes multiple documents
    * This is critical for translators that handle "multiple" item types
    */
-  const wrappedProcessDocuments = async (
+  const processDocuments = async (
     urls: string[],
     processor: (doc: Document, url: string) => void | Promise<void>,
     done?: () => void
@@ -109,10 +122,10 @@ export function createSandboxRequestFunctions(
   };
 
   return {
-    request: wrappedRequest,
-    requestText: wrappedRequestText,
-    requestJSON: wrappedRequestJSON,
-    requestDocument: wrappedRequestDocument,
-    processDocuments: wrappedProcessDocuments,
+    request,
+    requestText,
+    requestJSON,
+    requestDocument,
+    processDocuments,
   };
 }
