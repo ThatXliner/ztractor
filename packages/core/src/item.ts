@@ -59,7 +59,7 @@ export class Item implements ZoteroItem {
   /**
    * Mark the item as complete and trigger callback
    */
-  complete() {
+  complete(): void {
     if (this.completed) {
       return;
     }
@@ -78,7 +78,7 @@ export class Item implements ZoteroItem {
   /**
    * Set completion callback
    */
-  setComplete(callback: (item: ZoteroItem) => void) {
+  setComplete(callback: (item: ZoteroItem) => void): void {
     this._onComplete = callback;
   }
 
@@ -109,7 +109,7 @@ export class Item implements ZoteroItem {
   /**
    * Add a note
    */
-  addNote(note: string | Note) {
+  addNote(note: string | Note): void {
     if (typeof note === 'string') {
       this.notes.push({ note });
     } else {
@@ -120,14 +120,14 @@ export class Item implements ZoteroItem {
   /**
    * Add an attachment
    */
-  addAttachment(attachment: Attachment) {
+  addAttachment(attachment: Attachment): void {
     this.attachments.push(attachment);
   }
 
   /**
    * Add a tag
    */
-  addTag(tag: string | Tag) {
+  addTag(tag: string | Tag): void {
     if (typeof tag === 'string') {
       this.tags.push({ tag });
     } else {
@@ -138,7 +138,7 @@ export class Item implements ZoteroItem {
   /**
    * Add a creator
    */
-  addCreator(creator: Creator) {
+  addCreator(creator: Creator): void {
     this.creators.push(creator);
   }
 }
