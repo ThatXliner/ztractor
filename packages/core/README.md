@@ -212,7 +212,7 @@ Supports all modern browsers (Chrome, Firefox, Safari, Edge).
 
 ## License
 
-MIT
+AGPL v3+
 
 ## Credits
 

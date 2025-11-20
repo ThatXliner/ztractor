@@ -89,7 +89,7 @@ Contributions welcome! Please submit issues or pull requests.
 
 ## License
 
-MIT - see [LICENSE](./LICENSE)
+AGPL v3+ - see [LICENSE](./LICENSE)
 
 ## Credits
 
