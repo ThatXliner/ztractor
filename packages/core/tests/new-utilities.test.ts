@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { ZU } from '../src/utilities';
+import { ZU } from '../src/translator-sandbox';
 
 describe('New Zotero Utilities', () => {
   // Text processing utilities

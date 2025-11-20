@@ -1,6 +1,7 @@
 import { describe, test, expect } from 'bun:test';
 import { extractMetadata } from '../src/index';
-import { ZU } from 'ztractor';
+// ZU is internal-only, not part of public API
+// import { ZU } from 'ztractor';
 import { Item, parseTranslatorMetadata } from 'ztractor';
 import { parseHTMLDocument } from '../src/dom-utils';
 

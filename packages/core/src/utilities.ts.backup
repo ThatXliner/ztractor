@@ -1,14 +1,5 @@
 /**
  * Zotero Utilities (ZU) - Essential helper functions for translators
- *
- * ⚠️ INTERNAL MODULE - DO NOT IMPORT DIRECTLY ⚠️
- *
- * This module contains the implementation of ZU (Zotero Utilities) and is
- * only used by translator-sandbox.ts. External code should import from
- * translator-sandbox.ts instead.
- *
- * This file is kept separate from translator-sandbox.ts only for organization
- * purposes (1100+ lines of utility functions).
  */
 
 import type { Creator, ItemType, CreatorType } from './types';
@@ -1147,13 +1138,27 @@ export const ZU = {
 };
 
 /**
- * NOTE: All translator-specific utilities are now in translator-sandbox.ts:
- * - ZU (Zotero Utilities) object
- * - attr() and text() helper functions
- * - Request functions (request, requestText, requestJSON, requestDocument)
- * - processDocuments() function
- *
- * This file (utilities.ts) only contains the ZU implementation which is
- * re-exported by translator-sandbox.ts. External code should import from
- * translator-sandbox.ts, not directly from utilities.ts.
+ * NOTE: Request functions (request, requestText, requestJSON, requestDocument)
+ * are provided by the translator sandbox and are NOT exported from utilities.
+ * They are created by createSandboxRequestFunctions() in translator-sandbox.ts
+ * with proper URL resolution and DOM parsing support.
  */
+
+/**
+ * Helper functions available in translator context
+ */
+
+export function attr(
+  doc: Document | Element,
+  selector: string,
+  attribute: string
+): string | null {
+  return ZU.attr(doc, selector, attribute);
+}
+
+export function text(
+  doc: Document | Element,
+  selector: string
+): string | null {
+  return ZU.text(doc, selector);
+}

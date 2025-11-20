@@ -14,8 +14,10 @@ import { executeDetectWeb, executeDoWeb, parseHTMLDocument } from './executor';
 
 export { parseHTMLDocument, executeDetectWeb, executeDoWeb } from './executor';
 export { Item } from './item';
-export { ZU } from './utilities';
 export { parseTranslatorMetadata } from './translator-loader';
+
+// Note: ZU is internal-only and used by translators in the sandbox.
+// It is not part of the public API.
 
 // Will be generated at build time
 let translatorsRegistry: TranslatorRegistryEntry[];

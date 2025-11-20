@@ -1,15 +1,50 @@
 /**
  * Translator Sandbox Utilities
  *
- * This module provides request functions for use in translator sandboxes.
- * All functions resolve relative URLs against the page URL and handle DOM parsing properly.
+ * This module provides ALL utilities needed by Zotero translators:
+ * - ZU (Zotero Utilities) object with helper functions
+ * - Request functions (request, requestText, requestJSON, requestDocument)
+ * - Document processing (processDocuments)
+ * - Helper functions (attr, text)
  *
- * NOTE: These are self-contained implementations, not wrappers around utilities.ts,
- * to avoid circular dependencies and keep sandbox utilities independent.
+ * This is the single entry point for all translator-specific functionality.
  */
 
 import { parseHTMLDocument } from './executor';
 import type { ExtractMetadataOptions } from './types';
+
+// Re-export ZU and helpers from utilities (they are translator-specific)
+// ZU contains all the Zotero utility functions used by translators
+export { ZU } from './utilities';
+
+/**
+ * Get attribute value from element using CSS selector
+ * Helper function for translators to easily extract attributes
+ */
+export function attr(
+  doc: Document | Element,
+  selector: string,
+  attribute: string
+): string | null {
+  const elem = 'querySelector' in doc ? doc.querySelector(selector) : null;
+  if (!elem) return null;
+  return elem.getAttribute(attribute);
+}
+
+/**
+ * Get text content from element using CSS selector
+ * Helper function for translators to easily extract text with automatic trimming
+ */
+export function text(
+  doc: Document | Element,
+  selector: string
+): string | null {
+  const elem = 'querySelector' in doc ? doc.querySelector(selector) : null;
+  if (!elem) return null;
+  const content = elem.textContent || '';
+  // Trim internal whitespace (collapse multiple spaces)
+  return content.replace(/\s+/g, ' ').trim();
+}
 
 type ExecutorDependencies = NonNullable<ExtractMetadataOptions['dependencies']>;
 
