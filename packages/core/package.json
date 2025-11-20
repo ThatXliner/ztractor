@@ -1,8 +1,31 @@
 {
     "name": "ztractor",
-    "description": "Core browser-compatible logic for Ztractor",
+    "description": "Extract metadata from websites using Zotero's 600+ translators - browser and Node.js compatible",
     "version": "0.1.0",
     "type": "module",
+    "author": "Bryan Hu",
+    "license": "MIT",
+    "keywords": [
+        "zotero",
+        "metadata",
+        "scraping",
+        "translator",
+        "citation",
+        "bibliographic",
+        "web-scraping",
+        "extraction",
+        "academic",
+        "research"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/ThatXliner/ztractor.git",
+        "directory": "packages/core"
+    },
+    "bugs": {
+        "url": "https://github.com/ThatXliner/ztractor/issues"
+    },
+    "homepage": "https://github.com/ThatXliner/ztractor#readme",
     "files": [
         "dist"
     ],

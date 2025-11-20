@@ -1,8 +1,32 @@
 {
     "name": "ztractor-node",
-    "description": "Node.js wrapper for Ztractor",
+    "description": "Node.js optimized version of Ztractor with linkedom for fast DOM parsing",
     "version": "0.1.0",
     "type": "module",
+    "author": "Bryan Hu",
+    "license": "MIT",
+    "keywords": [
+        "zotero",
+        "metadata",
+        "scraping",
+        "translator",
+        "citation",
+        "bibliographic",
+        "web-scraping",
+        "extraction",
+        "academic",
+        "research",
+        "nodejs"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/ThatXliner/ztractor.git",
+        "directory": "packages/node"
+    },
+    "bugs": {
+        "url": "https://github.com/ThatXliner/ztractor/issues"
+    },
+    "homepage": "https://github.com/ThatXliner/ztractor#readme",
     "files": [
         "dist"
     ],

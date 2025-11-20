@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: ['*']
+  pull_request:
+    branches: ['*']
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive  # Fetch Zotero translators submodule
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Run tests
+        run: bun test
+
+      - name: Build packages
+        run: bun run build
+
+      - name: Verify build outputs
+        run: |
+          echo "Core package build:"
+          ls -lh packages/core/dist/
+          echo ""
+          echo "Node package build:"
+          ls -lh packages/node/dist/
+          echo ""
+          echo "Checking for type definitions..."
+          test -f packages/core/dist/index.d.ts && echo "✓ Core types exist"
+          test -f packages/node/dist/index.d.ts && echo "✓ Node types exist"
+
+      - name: Check package validity (dry-run)
+        run: |
+          cd packages/core && npm pack --dry-run
+          cd ../node && npm pack --dry-run
