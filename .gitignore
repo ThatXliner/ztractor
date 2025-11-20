@@ -7,7 +7,7 @@ dist
 *.tgz
 
 # Auto-generated files
-src/translators-registry.ts
+packages/core/src/translators-registry.ts
 
 # code coverage
 coverage
