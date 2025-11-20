@@ -10,7 +10,8 @@ Ztractor makes it easy to extract structured metadata (titles, authors, dates, e
 - **TypeScript-native** - Full type definitions for all metadata fields
 - **Zero runtime dependencies** - All translators bundled at build time
 - **Flexible API** - Pass URLs or pre-fetched HTML
-- **Lightweight** - Uses linkedom for fast DOM parsing (no headless browser needed)
+- **Isomorphic** - Works in both Node.js and browsers
+- **Lightweight** - Uses linkedom (Node) or native DOM (browser) for fast parsing
 - **Built with Bun** - Fast builds and modern JavaScript runtime
 
 ## Installation
@@ -26,6 +27,8 @@ npm install ztractor
 ```
 
 ## Quick Start
+
+### Node.js / Bun
 
 ```typescript
 import { extractMetadata } from 'ztractor';
@@ -43,6 +46,25 @@ if (result.success && result.items) {
   console.log(item.itemType);     // "newspaperArticle"
 }
 ```
+
+### Browser
+
+Ztractor works in browsers too! Modern bundlers (Vite, Webpack, etc.) will automatically use the browser build via package.json exports.
+
+```typescript
+import { extractMetadata } from 'ztractor';
+
+// Same API in the browser - uses native DOM APIs
+const result = await extractMetadata({
+  url: 'https://www.nytimes.com/2024/01/15/technology/example.html',
+});
+
+if (result.success && result.items) {
+  console.log(result.items[0].title);
+}
+```
+
+**Note:** Browser builds use native `DOMParser` and `document.evaluate()` for XPath, making them lighter and faster than the Node version. CORS restrictions apply when fetching URLs from the browser.
 
 ## API
 
@@ -279,11 +301,13 @@ bun test
 ```
 ztractor/
 ├── src/
-│   ├── index.ts              # Main API
+│   ├── index.ts              # Node.js API
+│   ├── index.browser.ts      # Browser API
 │   ├── types.ts              # TypeScript definitions
 │   ├── item.ts               # Zotero.Item class
 │   ├── utilities.ts          # Zotero Utilities (ZU)
-│   ├── executor.ts           # Translator execution sandbox
+│   ├── executor.ts           # Node translator executor (uses linkedom)
+│   ├── executor.browser.ts   # Browser translator executor (uses native DOM)
 │   ├── translator-loader.ts  # Translator loading and matching
 │   └── translators-registry.ts # Auto-generated translator registry
 ├── build/
@@ -306,6 +330,7 @@ ztractor/
 - **Static HTML only**: Does not execute JavaScript on pages (no headless browser). Some sites that heavily rely on client-side rendering may not work.
 - **Web translators only**: Currently only supports web translators (type 4). Import/export translators are not included.
 - **Async handling**: Some complex translators that fetch multiple pages may not work perfectly.
+- **Browser CORS**: When running in browsers, CORS restrictions apply. You may need to fetch HTML server-side and pass it to `extractMetadata()`.
 
 ## Contributing
 
