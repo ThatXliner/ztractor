@@ -3,18 +3,12 @@
   "workspaces": {
     "": {
       "name": "ztractor",
-      "devDependencies": {
-        "@types/bun": "latest",
-        "typescript": "^5",
-      },
     },
     "packages/core": {
       "name": "ztractor",
       "version": "0.1.0",
       "devDependencies": {
         "@types/bun": "^1.3.2",
-      },
-      "peerDependencies": {
         "typescript": "^5",
       },
     },
@@ -29,8 +23,6 @@
       },
       "devDependencies": {
         "@types/bun": "^1.3.2",
-      },
-      "peerDependencies": {
         "typescript": "^5",
       },
     },

@@ -10,8 +10,9 @@
         "dist"
     ],
     "scripts": {
-        "build": "bun build src/index.ts --outdir dist --target browser --format esm",
-        "test": "bun test"
+        "build": "bun bundle-translators.ts && bun build src/index.ts --outdir dist --target browser --format esm",
+        "test": "bun test",
+        "postinstall": "bun bundle-translators.ts"
     },
     "devDependencies": {
         "typescript": "^5",

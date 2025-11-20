@@ -17,7 +17,7 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "bun build/bundle-translators.ts && bun run --filter '*' build",
+    "build": "bun run --filter '*' build",
     "test": "bun run --filter '*' test"
   },
   "engines": {
