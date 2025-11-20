@@ -1,21 +1,30 @@
 {
     "name": "ztractor",
-    "version": "0.1.0",
     "description": "Core browser-compatible logic for Ztractor",
+    "version": "0.1.0",
     "type": "module",
-    "main": "dist/index.js",
-    "module": "dist/index.js",
-    "types": "dist/index.d.ts",
     "files": [
         "dist"
     ],
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "import": {
+                "types": "./dist/index.d.ts",
+                "default": "./dist/index.js"
+            }
+        },
+        "./package.json": "./package.json"
+    },
     "scripts": {
-        "build": "bun bundle-translators.ts && bun build src/index.ts --outdir dist --target browser --format esm",
+        "build": "bun bundle-translators.ts && bunx bunup --exports -t browser",
         "test": "bun test",
         "postinstall": "bun bundle-translators.ts"
     },
     "devDependencies": {
-        "typescript": "^5",
-        "@types/bun": "^1.3.2"
+        "@types/bun": "^1.3.2",
+        "bunup": "^0.15.14",
+        "typescript": "^5"
     }
 }
