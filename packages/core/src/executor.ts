@@ -3,7 +3,8 @@
  */
 
 import { Item } from './item';
-import { ZU, attr, text, request, requestText, requestJSON, requestDocument as baseRequestDocument } from './utilities';
+import { ZU, attr, text } from './utilities';
+import { createSandboxRequestFunctions } from './translator-sandbox';
 import type { Translator, ZoteroItem, ItemType, ExtractMetadataOptions } from './types';
 
 type ExecutorDependencies = NonNullable<ExtractMetadataOptions['dependencies']>;
@@ -35,8 +36,35 @@ export async function executeDetectWeb(
       return null;
     `;
 
-    const fn = new Function('doc', 'url', 'Zotero', 'Z', 'ZU', 'attr', 'text', 'DOMParser', code);
-    const result = fn(doc, url, sandbox.Zotero, sandbox.Zotero, sandbox.ZU, attr, text, dependencies.DOMParser);
+    const fn = new Function(
+      'doc',
+      'url',
+      'Zotero',
+      'Z',
+      'ZU',
+      'attr',
+      'text',
+      'request',
+      'requestText',
+      'requestJSON',
+      'requestDocument',
+      'DOMParser',
+      code
+    );
+    const result = fn(
+      doc,
+      url,
+      sandbox.Zotero,
+      sandbox.Zotero,
+      sandbox.ZU,
+      attr,
+      text,
+      sandbox.request,
+      sandbox.requestText,
+      sandbox.requestJSON,
+      sandbox.requestDocument,
+      dependencies.DOMParser
+    );
 
     return result;
   } catch (e) {
@@ -91,7 +119,20 @@ export async function executeDoWeb(
         code
       );
 
-      fn(doc, url, sandbox.Zotero, sandbox.Zotero, sandbox.ZU, attr, text, request, requestText, requestJSON, sandbox.requestDocument, dependencies.DOMParser);
+      fn(
+        doc,
+        url,
+        sandbox.Zotero,
+        sandbox.Zotero,
+        sandbox.ZU,
+        attr,
+        text,
+        sandbox.request,
+        sandbox.requestText,
+        sandbox.requestJSON,
+        sandbox.requestDocument,
+        dependencies.DOMParser
+      );
 
       // Give translators a moment to complete async operations
       setTimeout(() => {
@@ -117,52 +158,27 @@ function createSandbox(
   const items: Item[] = [];
   let selectItemsCallback: ((items: Record<string, string>) => void) | null = null;
 
-  // Create a wrapped ZU that resolves relative URLs and injects processDocuments
+  // Create wrapped request functions from centralized module
+  const sandboxRequests = createSandboxRequestFunctions(url, dependencies);
+
+  // Create a wrapped ZU that resolves relative URLs
   const wrappedZU = {
     ...ZU,
+    // Inject processDocuments from sandbox utilities
+    processDocuments: sandboxRequests.processDocuments,
+    // Wrap legacy doGet/doPost for relative URL resolution
     async doGet(requestUrl: string, done?: (text: string) => void): Promise<string> {
-      // Resolve relative URLs against the page URL
       const absoluteUrl = requestUrl.startsWith('/') || requestUrl.startsWith('./')
         ? new URL(requestUrl, url).href
         : requestUrl;
       return ZU.doGet(absoluteUrl, done);
     },
     async doPost(requestUrl: string, body: string, done?: (text: string) => void): Promise<string> {
-      // Resolve relative URLs against the page URL
       const absoluteUrl = requestUrl.startsWith('/') || requestUrl.startsWith('./')
         ? new URL(requestUrl, url).href
         : requestUrl;
       return ZU.doPost(absoluteUrl, body, done);
     },
-    // Inject working processDocuments implementation
-    async processDocuments(
-      urls: string[],
-      processor: (doc: Document, url: string) => void | Promise<void>,
-      done?: () => void
-    ): Promise<void> {
-      for (const docUrl of urls) {
-        try {
-          // Resolve relative URLs
-          const absoluteUrl = docUrl.startsWith('/') || docUrl.startsWith('./')
-            ? new URL(docUrl, url).href
-            : docUrl;
-
-          // Fetch and parse document
-          const html = await fetch(absoluteUrl).then(r => r.text());
-          const processDoc = parseHTMLDocument(html, absoluteUrl, dependencies);
-
-          // Call processor
-          await processor(processDoc, absoluteUrl);
-        } catch (e) {
-          console.error(`Error processing document ${docUrl}:`, e);
-        }
-      }
-
-      // Call done callback if provided
-      if (done) {
-        done();
-      }
-    }
   };
 
   const sandbox = {
@@ -281,7 +297,28 @@ function createSandbox(
     },
   };
 
-  // Create wrapped requestDocument with proper DOM parsing
+  // Create wrapped request functions with relative URL resolution
+  const wrappedRequest = async (requestUrl: string, options?: RequestInit) => {
+    const absoluteUrl = requestUrl.startsWith('/') || requestUrl.startsWith('./')
+      ? new URL(requestUrl, url).href
+      : requestUrl;
+    return request(absoluteUrl, options);
+  };
+
+  const wrappedRequestText = async (requestUrl: string, options?: RequestInit) => {
+    const absoluteUrl = requestUrl.startsWith('/') || requestUrl.startsWith('./')
+      ? new URL(requestUrl, url).href
+      : requestUrl;
+    return requestText(absoluteUrl, options);
+  };
+
+  const wrappedRequestJSON = async (requestUrl: string, options?: RequestInit) => {
+    const absoluteUrl = requestUrl.startsWith('/') || requestUrl.startsWith('./')
+      ? new URL(requestUrl, url).href
+      : requestUrl;
+    return requestJSON(absoluteUrl, options);
+  };
+
   const wrappedRequestDocument = async (requestUrl: string, options?: RequestInit): Promise<Document> => {
     // Resolve relative URLs
     const absoluteUrl = requestUrl.startsWith('/') || requestUrl.startsWith('./')
@@ -298,9 +335,9 @@ function createSandbox(
     ZU: wrappedZU,
     attr,
     text,
-    request,
-    requestText,
-    requestJSON,
+    request: wrappedRequest,
+    requestText: wrappedRequestText,
+    requestJSON: wrappedRequestJSON,
     requestDocument: wrappedRequestDocument,
     doc,
     url,
