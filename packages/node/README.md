@@ -298,7 +298,7 @@ Benchmarks show linkedom is significantly faster than alternatives:
 
 ## License
 
-MIT
+AGPL v3+
 
 ## Credits
 
