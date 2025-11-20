@@ -1,5 +1,6 @@
 /**
- * Ztractor - Use Zotero translators to extract metadata from websites
+ * Ztractor - Browser version
+ * Use Zotero translators to extract metadata from websites
  */
 
 import type {
@@ -8,14 +9,20 @@ import type {
   ZoteroItem,
   Translator,
 } from './types';
-import { parseHTMLDocument, executeDetectWeb, executeDoWeb } from './executor';
+import type { TranslatorRegistryEntry } from './translators-registry';
+import { executeDetectWeb, executeDoWeb, parseHTMLDocument } from './executor';
+
+export { parseHTMLDocument, executeDetectWeb, executeDoWeb } from './executor';
+export { Item } from './item';
+export { ZU } from './utilities';
+export { parseTranslatorMetadata } from './translator-loader';
 
 // Will be generated at build time
-let translatorsRegistry: any;
-let findTranslatorsForUrl: (url: string) => any[];
+let translatorsRegistry: TranslatorRegistryEntry[];
+let findTranslatorsForUrl: (url: string) => TranslatorRegistryEntry[];
 
 // Lazy load the registry
-async function loadRegistry() {
+async function loadRegistry(): Promise<void> {
   if (!translatorsRegistry) {
     const module = await import('./translators-registry');
     translatorsRegistry = module.TRANSLATORS_REGISTRY;
@@ -51,7 +58,7 @@ export async function extractMetadata(
   const opts: ExtractMetadataOptions =
     typeof options === 'string' ? { url: options } : options;
 
-  const { url, html, headers, timeout = 10000 } = opts;
+  const { url, html, headers, timeout = 10000, dependencies } = opts;
 
   try {
     // Load translators registry
@@ -79,7 +86,7 @@ export async function extractMetadata(
     }
 
     // Parse HTML into Document
-    const doc = parseHTMLDocument(htmlContent, url);
+    const doc = parseHTMLDocument(htmlContent, url, dependencies);
 
     // Find matching translators
     const matchingTranslators = findTranslatorsForUrl(url);
@@ -101,14 +108,14 @@ export async function extractMetadata(
         };
 
         // Check if translator can handle this page
-        const itemType = await executeDetectWeb(translator, doc, url);
+        const itemType = await executeDetectWeb(translator, doc, url, dependencies);
 
         if (!itemType) {
           continue; // Try next translator
         }
 
         // Extract metadata
-        const items = await executeDoWeb(translator, doc, url);
+        const items = await executeDoWeb(translator, doc, url, dependencies);
 
         if (items.length > 0) {
           return {
@@ -142,9 +149,14 @@ export async function extractMetadata(
 /**
  * Get list of all available translators
  */
-export async function getAvailableTranslators() {
+export async function getAvailableTranslators(): Promise<{
+    id: string;
+    label: string;
+    target: string;
+    priority: number;
+}[]> {
   await loadRegistry();
-  return translatorsRegistry.map((entry: any) => ({
+  return translatorsRegistry.map((entry) => ({
     id: entry.metadata.translatorID,
     label: entry.metadata.label,
     target: entry.metadata.target,
@@ -155,9 +167,14 @@ export async function getAvailableTranslators() {
 /**
  * Find translators that match a URL
  */
-export async function findTranslators(url: string) {
+export async function findTranslators(url: string): Promise<{
+    id: string;
+    label: string;
+    target: string;
+    priority: number;
+}[]> {
   await loadRegistry();
-  return findTranslatorsForUrl(url).map((entry: any) => ({
+  return findTranslatorsForUrl(url).map((entry) => ({
     id: entry.metadata.translatorID,
     label: entry.metadata.label,
     target: entry.metadata.target,

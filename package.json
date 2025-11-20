@@ -1,9 +1,10 @@
 {
-  "name": "ztractor",
+  "name": "ztractor-monorepo",
+  "private": true,
   "version": "0.1.0",
   "description": "Use Zotero translators to extract metadata from websites",
   "author": "Bryan Hu",
-  "license": "MIT",
+  "license": "AGPL-3.0-or-later",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ThatXliner/ztractor.git"
@@ -12,50 +13,12 @@
     "url": "https://github.com/ThatXliner/ztractor/issues"
   },
   "homepage": "https://github.com/ThatXliner/ztractor#readme",
-  "keywords": [
-    "zotero",
-    "metadata",
-    "extraction",
-    "web-scraping",
-    "citations",
-    "bibliography",
-    "translator",
-    "academic",
-    "doi",
-    "isbn"
-  ],
-  "module": "dist/index.js",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "type": "module",
-  "files": [
-    "dist",
-    "src",
-    "README.md",
-    "LICENSE"
+  "workspaces": [
+    "packages/*"
   ],
   "scripts": {
-    "build": "bun build/bundle-translators.ts && bun build src/index.ts --outdir dist --target node --format esm",
-    "test": "bun test",
-    "prepare": "bun run build",
-    "prepublishOnly": "bun test && bun run build"
-  },
-  "dependencies": {
-    "@xmldom/xmldom": "^0.8.11",
-    "linkedom": "^0.18.5",
-    "xpath": "^0.0.34"
-  },
-  "devDependencies": {
-    "@types/bun": "latest"
-  },
-  "peerDependencies": {
-    "typescript": "^5"
-  },
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    }
+    "build": "bun run --filter '*' build",
+    "test": "bun run --filter '*' test"
   },
   "engines": {
     "node": ">=18.0.0"

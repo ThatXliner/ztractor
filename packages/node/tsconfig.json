@@ -1,0 +1,14 @@
+{
+    "extends": "../../tsconfig.json",
+    "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+            "ztractor": [
+                "../core/src/index.ts"
+            ]
+        }
+    },
+    "include": [
+        "src/**/*"
+    ]
+}

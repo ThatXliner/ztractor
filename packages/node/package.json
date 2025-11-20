@@ -1,0 +1,59 @@
+{
+    "name": "ztractor-node",
+    "description": "Node.js optimized version of Ztractor with linkedom for fast DOM parsing",
+    "version": "0.1.0",
+    "type": "module",
+    "author": "Bryan Hu",
+    "license": "AGPL-3.0-or-later",
+    "keywords": [
+        "zotero",
+        "metadata",
+        "scraping",
+        "translator",
+        "citation",
+        "bibliographic",
+        "web-scraping",
+        "extraction",
+        "academic",
+        "research",
+        "nodejs"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/ThatXliner/ztractor.git",
+        "directory": "packages/node"
+    },
+    "bugs": {
+        "url": "https://github.com/ThatXliner/ztractor/issues"
+    },
+    "homepage": "https://github.com/ThatXliner/ztractor#readme",
+    "files": [
+        "dist"
+    ],
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "import": {
+                "types": "./dist/index.d.ts",
+                "default": "./dist/index.js"
+            }
+        },
+        "./package.json": "./package.json"
+    },
+    "scripts": {
+        "build": "bunx bunup --exports",
+        "test": "bun test"
+    },
+    "dependencies": {
+        "ztractor": "workspace:*",
+        "@xmldom/xmldom": "^0.8.11",
+        "linkedom": "^0.18.5",
+        "xpath": "^0.0.34"
+    },
+    "devDependencies": {
+        "@types/bun": "^1.3.2",
+        "bunup": "^0.15.14",
+        "typescript": "^5"
+    }
+}

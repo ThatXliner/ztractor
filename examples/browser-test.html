@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ztractor Browser Test</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    h1 {
+      color: #333;
+    }
+    .input-group {
+      margin: 20px 0;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input[type="text"], textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 14px;
+    }
+    textarea {
+      min-height: 150px;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    #result {
+      margin-top: 30px;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 4px;
+      display: none;
+    }
+    #result.show {
+      display: block;
+    }
+    #result.error {
+      background: #fee;
+      border-left: 4px solid #c00;
+    }
+    #result.success {
+      background: #efe;
+      border-left: 4px solid #0a0;
+    }
+    pre {
+      background: white;
+      padding: 15px;
+      border-radius: 4px;
+      overflow-x: auto;
+      font-size: 13px;
+    }
+    .loading {
+      display: inline-block;
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔬 Ztractor Browser Test</h1>
+  <p>Test the browser build of Ztractor by extracting metadata from a URL.</p>
+
+  <div class="input-group">
+    <label for="url">URL to extract metadata from:</label>
+    <input
+      type="text"
+      id="url"
+      placeholder="https://arxiv.org/abs/1706.03762"
+      value="https://arxiv.org/abs/1706.03762"
+    >
+  </div>
+
+  <div class="input-group">
+    <label for="html">HTML (optional - leave empty to fetch):</label>
+    <textarea id="html" placeholder="Leave empty to fetch from URL"></textarea>
+  </div>
+
+  <button id="extract" onclick="runExtraction()">Extract Metadata</button>
+  <span id="loading" class="loading" style="display: none;">⏳ Processing...</span>
+
+  <div id="result">
+    <h2>Result</h2>
+    <pre id="resultContent"></pre>
+  </div>
+
+  <script type="module">
+    import { extractMetadata } from '../dist/browser.js';
+
+    window.runExtraction = async function() {
+      const urlInput = document.getElementById('url');
+      const htmlInput = document.getElementById('html');
+      const button = document.getElementById('extract');
+      const loading = document.getElementById('loading');
+      const result = document.getElementById('result');
+      const resultContent = document.getElementById('resultContent');
+
+      const url = urlInput.value.trim();
+      if (!url) {
+        alert('Please enter a URL');
+        return;
+      }
+
+      // Show loading state
+      button.disabled = true;
+      loading.style.display = 'inline-block';
+      result.classList.remove('show', 'success', 'error');
+
+      try {
+        const options = {
+          url: url,
+        };
+
+        // Add HTML if provided
+        const html = htmlInput.value.trim();
+        if (html) {
+          options.html = html;
+        }
+
+        console.log('Extracting metadata from:', url);
+        const metadata = await extractMetadata(options);
+
+        // Show result
+        result.classList.add('show');
+        if (metadata.success) {
+          result.classList.add('success');
+          resultContent.textContent = JSON.stringify(metadata, null, 2);
+          console.log('Success:', metadata);
+        } else {
+          result.classList.add('error');
+          resultContent.textContent = `Error: ${metadata.error}`;
+          console.error('Error:', metadata.error);
+        }
+      } catch (error) {
+        result.classList.add('show', 'error');
+        resultContent.textContent = `Exception: ${error.message}\n\n${error.stack}`;
+        console.error('Exception:', error);
+      } finally {
+        button.disabled = false;
+        loading.style.display = 'none';
+      }
+    };
+
+    // Test that the module loaded
+    console.log('✅ Ztractor browser module loaded successfully');
+    console.log('📦 Available functions:', { extractMetadata });
+  </script>
+</body>
+</html>

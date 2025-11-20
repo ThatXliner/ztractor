@@ -220,6 +220,14 @@ export interface ExtractMetadataOptions {
    * Timeout in milliseconds
    */
   timeout?: number;
+
+  /**
+   * Optional dependencies to inject (for Node.js environment)
+   */
+  dependencies?: {
+    DOMParser: any;
+    parseHTMLDocument?: (html: string, url: string) => any;
+  };
 }
 
 /**

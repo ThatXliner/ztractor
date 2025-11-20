@@ -1,5 +1,6 @@
 import { test, expect, describe } from 'bun:test';
-import { parseHTMLDocument } from '../src/executor';
+import { parseHTMLDocument } from '../src/dom-utils';
+import { executeDetectWeb, executeDoWeb } from 'ztractor';
 
 describe('Advanced XPath Support', () => {
   const html = `
