@@ -1,0 +1,25 @@
+{
+    "name": "ztractor-node",
+    "version": "0.1.0",
+    "description": "Node.js wrapper for Ztractor",
+    "type": "module",
+    "main": "dist/index.js",
+    "module": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "build": "bun build src/index.ts --outdir dist --target node --format esm",
+        "test": "bun test"
+    },
+    "dependencies": {
+        "ztractor": "workspace:*",
+        "@xmldom/xmldom": "^0.8.11",
+        "linkedom": "^0.18.5",
+        "xpath": "^0.0.34"
+    },
+    "peerDependencies": {
+        "typescript": "^5"
+    }
+}

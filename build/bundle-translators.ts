@@ -68,7 +68,7 @@ function escapeForTemplate(code: string): string {
 
 async function main() {
   const translatorsDir = join(process.cwd(), 'translators');
-  const outputDir = join(process.cwd(), 'src');
+  const outputDir = join(process.cwd(), 'packages/core/src');
   const outputFile = join(outputDir, 'translators-registry.ts');
 
   console.log('📦 Bundling Zotero translators...');

@@ -1,0 +1,19 @@
+{
+    "name": "ztractor",
+    "version": "0.1.0",
+    "description": "Core browser-compatible logic for Ztractor",
+    "type": "module",
+    "main": "dist/index.js",
+    "module": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "build": "bun build src/index.ts --outdir dist --target browser --format esm",
+        "test": "bun test"
+    },
+    "peerDependencies": {
+        "typescript": "^5"
+    }
+}
