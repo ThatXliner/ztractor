@@ -1,6 +1,6 @@
 {
     "name": "ztractor",
-    "description": "Extract metadata from websites using Zotero's 600+ translators - browser and Node.js compatible",
+    "description": "Extract metadata from websites using Zotero's 600+ translators",
     "version": "0.1.0",
     "type": "module",
     "author": "Bryan Hu",

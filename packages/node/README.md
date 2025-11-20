@@ -40,7 +40,7 @@ if (result.success && result.items) {
 This package is optimized for Node.js environments:
 
 - **Fast DOM parsing** - Uses [linkedom](https://github.com/WebReflection/linkedom) instead of heavyweight alternatives
-- **Full XPath support** - Hybrid linkedom/@xmldom/xmldom implementation for XPath 1.0
+- **Decent XPath support** - Hybrid linkedom/@xmldom/xmldom implementation for XPath 1.0 (used by some Zotero Translators)
 - **No browser required** - Pure Node.js implementation, no headless browser needed
 - **Small footprint** - Lightweight compared to jsdom or puppeteer
 
