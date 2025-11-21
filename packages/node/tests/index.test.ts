@@ -1,6 +1,6 @@
 import { test, expect, describe } from 'bun:test';
 import { extractMetadata } from '../src/index';
-import { ZU, Item, parseTranslatorMetadata } from 'ztractor';
+import { Item, parseTranslatorMetadata, ZU } from 'ztractor';
 
 describe('Zotero Utilities', () => {
   test('trimInternal removes extra whitespace', () => {

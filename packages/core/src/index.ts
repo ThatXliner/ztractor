@@ -16,8 +16,10 @@ export { parseHTMLDocument, executeDetectWeb, executeDoWeb } from './executor';
 export { Item } from './item';
 export { parseTranslatorMetadata } from './translator-loader';
 
-// Note: ZU is internal-only and used by translators in the sandbox.
-// It is not part of the public API.
+// ⚠️ INTERNAL API - For testing and advanced usage only
+// ZU (Zotero Utilities) is used internally by translators in the sandbox.
+// This export is provided for testing purposes but may change without notice.
+export { ZU } from './translator-sandbox';
 
 // Will be generated at build time
 let translatorsRegistry: TranslatorRegistryEntry[];

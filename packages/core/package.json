@@ -3,6 +3,20 @@
     "description": "Extract metadata from websites using Zotero's 600+ translators",
     "version": "1.0.0",
     "type": "module",
+    "files": [
+        "dist"
+    ],
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "import": {
+                "types": "./dist/index.d.ts",
+                "default": "./dist/index.js"
+            }
+        },
+        "./package.json": "./package.json"
+    },
     "author": "Bryan Hu",
     "license": "AGPL-3.0-or-later",
     "keywords": [
@@ -26,20 +40,6 @@
         "url": "https://github.com/ThatXliner/ztractor/issues"
     },
     "homepage": "https://github.com/ThatXliner/ztractor#readme",
-    "files": [
-        "dist"
-    ],
-    "module": "./dist/index.js",
-    "types": "./dist/index.d.ts",
-    "exports": {
-        ".": {
-            "import": {
-                "types": "./dist/index.d.ts",
-                "default": "./dist/index.js"
-            }
-        },
-        "./package.json": "./package.json"
-    },
     "scripts": {
         "build": "bun bundle-translators.ts && bunx bunup --exports -t browser",
         "test": "bun test"

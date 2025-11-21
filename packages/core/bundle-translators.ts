@@ -97,8 +97,12 @@ async function main() {
       continue;
     }
 
-    // Only include web translators (type 4)
-    if (metadata.translatorType === 4) {
+    // Include web translators (type 4) and import translators (type 1 and 3)
+    // Import translators are needed by web translators for parsing RIS, BibTeX, MARC, etc.
+    const isWebTranslator = metadata.translatorType === 4;
+    const isImportTranslator = metadata.translatorType === 1 || metadata.translatorType === 3;
+
+    if (isWebTranslator || isImportTranslator) {
       const jsCode = extractCodeWithoutMetadata(code);
       translators.push({
         metadata,
@@ -111,8 +115,10 @@ async function main() {
       (translatorsByType[metadata.translatorType] || 0) + 1;
   }
 
-  console.log(`✅ Parsed ${translators.length} web translators`);
-  console.log(`⏭️  Skipped ${skipped} files (invalid or non-web)`);
+  const webCount = translators.filter(t => t.metadata.translatorType === 4).length;
+  const importCount = translators.filter(t => t.metadata.translatorType === 1 || t.metadata.translatorType === 3).length;
+  console.log(`✅ Parsed ${translators.length} translators (${webCount} web, ${importCount} import)`);
+  console.log(`⏭️  Skipped ${skipped} files (invalid or non-included)`);
   console.log(`📏 Total translator code size: ${(totalCodeSize / 1024 / 1024).toFixed(2)} MB`);
   console.log('\n📊 Translators by type:');
   for (const [type, count] of Object.entries(translatorsByType)) {

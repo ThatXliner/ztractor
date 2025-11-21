@@ -1,8 +1,6 @@
 import { describe, test, expect } from 'bun:test';
 import { extractMetadata } from '../src/index';
-// ZU is internal-only, not part of public API
-// import { ZU } from 'ztractor';
-import { Item, parseTranslatorMetadata } from 'ztractor';
+import { Item, parseTranslatorMetadata, ZU } from 'ztractor';
 import { parseHTMLDocument } from '../src/dom-utils';
 
 describe('ZU Edge Cases', () => {

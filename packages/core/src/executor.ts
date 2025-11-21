@@ -3,8 +3,7 @@
  */
 
 import { Item } from './item';
-import { ZU, attr, text } from './utilities';
-import { createSandboxRequestFunctions } from './translator-sandbox';
+import { ZU, attr, text, createSandboxRequestFunctions } from './translator-sandbox';
 import type { Translator, ZoteroItem, ItemType, ExtractMetadataOptions } from './types';
 
 type ExecutorDependencies = NonNullable<ExtractMetadataOptions['dependencies']>;
@@ -217,22 +216,134 @@ function createSandbox(
        * Load a translator by ID
        */
       loadTranslator(type: string) {
+        let translatorId: string | null = null;
+        let inputString: string | null = null;
+        let inputDoc: Document | null = null;
+        const handlers: Record<string, Function> = {};
+
         return {
           setTranslator(id: string) {
-            // Store translator ID for loading
+            translatorId = id;
+          },
+          setString(str: string) {
+            inputString = str;
           },
           setDocument(doc: Document) {
-            // Store document
+            inputDoc = doc;
           },
           setHandler(event: string, handler: Function) {
-            // Store event handler
+            handlers[event] = handler;
           },
           getTranslatorObject(callback: Function) {
             // Return translator object
             callback({});
           },
-          translate() {
-            // Execute translation
+          async translate() {
+            if (!translatorId) {
+              throw new Error('No translator set');
+            }
+
+            // Get translator by ID from registry
+            const translatorRegistry = await import('./translators-registry');
+            const translatorEntry = translatorRegistry.TRANSLATORS_REGISTRY.find(
+              (t: any) => t.metadata.translatorID === translatorId
+            );
+
+            if (!translatorEntry) {
+              throw new Error(`Translator not found: ${translatorId}`);
+            }
+
+            // Create a new sandbox for the import translator
+            const importSandbox = createSandbox(inputDoc || doc, url, (item: any) => {
+              // Call itemDone handler if registered
+              if (handlers.itemDone) {
+                handlers.itemDone(null, item);
+              }
+            }, dependencies);
+
+            // Execute the import translator code
+            const code = `
+              ${translatorEntry.code}
+
+              // Execute doImport if this is an import translator
+              if (typeof doImport === 'function') {
+                return doImport();
+              }
+              return null;
+            `;
+
+            const fn = new Function(
+              'doc',
+              'url',
+              'Zotero',
+              'Z',
+              'ZU',
+              'attr',
+              'text',
+              'request',
+              'requestText',
+              'requestJSON',
+              'requestDocument',
+              'DOMParser',
+              code
+            );
+
+            // Create read function for import translators
+            const readFunction = (bytes) => {
+              if (!inputString) return false;
+              if (bytes === undefined) {
+                // Read a line (up to newline)
+                const newlineIndex = inputString.indexOf('\n');
+                if (newlineIndex === -1) {
+                  // No newline found, return entire string
+                  const result = inputString;
+                  inputString = '';
+                  return result || false;
+                }
+                const result = inputString.substring(0, newlineIndex);
+                inputString = inputString.substring(newlineIndex + 1);
+                return result;
+              }
+              if (inputString.length === 0) return false;
+              const result = inputString.substring(0, bytes);
+              inputString = inputString.substring(bytes);
+              return result;
+            };
+
+            // Extend Zotero object with read function for import translators
+            const importZotero = {
+              ...importSandbox.Zotero,
+              read: readFunction,
+            };
+
+            try {
+              await fn(
+                importSandbox.doc,
+                importSandbox.url,
+                importZotero,
+                importZotero,
+                importSandbox.ZU,
+                importSandbox.attr,
+                importSandbox.text,
+                importSandbox.request,
+                importSandbox.requestText,
+                importSandbox.requestJSON,
+                importSandbox.requestDocument,
+                dependencies.DOMParser
+              );
+
+              // Call done handler if registered
+              if (handlers.done) {
+                handlers.done(null, true);
+              }
+            } catch (error) {
+              // Call error handler if registered
+              if (handlers.error) {
+                handlers.error(null, error);
+              } else {
+                throw error;
+              }
+            }
           },
         };
       },
