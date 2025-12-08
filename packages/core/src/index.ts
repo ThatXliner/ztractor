@@ -14,7 +14,7 @@ import { executeDetectWeb, executeDoWeb, parseHTMLDocument } from './executor';
 
 export { parseHTMLDocument, executeDetectWeb, executeDoWeb } from './executor';
 export { Item } from './item';
-export { ZU } from './utilities';
+export { ZU } from './utilities-bundle';
 export { parseTranslatorMetadata } from './translator-loader';
 
 // Will be generated at build time

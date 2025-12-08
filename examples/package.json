@@ -1,0 +1,13 @@
+{
+  "name": "examples",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "ztractor": "^1.0.0"
+  }
+}

@@ -37,7 +37,7 @@ function parseTranslatorMetadata(code: string): TranslatorMetadata | null {
     if (
       !metadata.translatorID ||
       !metadata.label ||
-      !metadata.target ||
+      metadata.target === undefined ||
       metadata.translatorType === undefined
     ) {
       return null;

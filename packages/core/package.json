@@ -41,7 +41,7 @@
         "./package.json": "./package.json"
     },
     "scripts": {
-        "build": "bun bundle-translators.ts && bunx bunup --exports -t browser",
+        "build": "bun bundle-utilities.ts && bun bundle-translators.ts && bunx bunup --exports -t browser",
         "test": "bun test"
     },
     "devDependencies": {

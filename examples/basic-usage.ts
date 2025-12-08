@@ -2,15 +2,15 @@
  * Basic usage example for Ztractor
  */
 
-import { extractMetadata } from '../src/index';
+import { extractMetadata } from "ztractor-node";
 
 async function main() {
-  console.log('🔍 Ztractor - Extract metadata from websites\n');
+  console.log("🔍 Ztractor - Extract metadata from websites\n");
 
   // Example 1: Extract from URL (will fetch HTML automatically)
-  console.log('Example 1: ABC News Australia article');
+  console.log("Example 1: Wikipedia");
   const result1 = await extractMetadata({
-    url: 'https://www.abc.net.au/news/2020-05-22/nt-government-coronavirus-recovery-commission-michael-gunner/12276832',
+    url: "https://en.wikipedia.org/wiki/Exam",
   });
 
   if (result1.success && result1.items) {
@@ -19,17 +19,19 @@ async function main() {
     console.log(`   Title: ${item.title}`);
     console.log(`   Type: ${item.itemType}`);
     console.log(`   Date: ${item.date}`);
-    console.log(`   Authors: ${item.creators?.map((c) => `${c.firstName} ${c.lastName}`).join(', ')}`);
+    console.log(
+      `   Authors: ${item.creators?.map((c) => `${c.firstName} ${c.lastName}`).join(", ")}`,
+    );
     console.log(`   Publication: ${item.publicationTitle}`);
   } else {
     console.log(`❌ Failed: ${result1.error}`);
   }
 
-  console.log('\n---\n');
+  console.log("\n---\n");
 
   // Example 2: With pre-fetched HTML
-  console.log('Example 2: With pre-fetched HTML');
-  const url = 'https://example.com/article';
+  console.log("Example 2: With pre-fetched HTML");
+  const url = "https://example.com/article";
   const html = `
     <!DOCTYPE html>
     <html>
@@ -60,12 +62,12 @@ async function main() {
     console.log(`❌ Failed: ${result2.error}`);
   }
 
-  console.log('\n---\n');
+  console.log("\n---\n");
 
   // Example 3: Simple API - just pass URL string
-  console.log('Example 3: Simple API with URL string');
+  console.log("Example 3: Simple API with URL string");
   const result3 = await extractMetadata(
-    'https://www.nytimes.com/2024/01/15/technology/example.html'
+    "https://www.nytimes.com/2024/01/15/technology/example.html",
   );
 
   if (result3.success) {

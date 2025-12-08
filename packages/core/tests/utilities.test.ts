@@ -1,5 +1,5 @@
 import { test, expect, describe } from 'bun:test';
-import { ZU, attr, text } from '../src/utilities';
+import { ZU, attr, text } from '../src/utilities-bundle';
 
 // Mock minimal DOM for testing
 function createMockDocument(html: string): any {
