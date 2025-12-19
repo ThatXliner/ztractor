@@ -4,3 +4,6 @@
 [submodule "packages/core/utilities"]
 	path = packages/core/utilities
 	url = https://github.com/zotero/utilities.git
+[submodule "packages/core/translate"]
+	path = packages/core/translate
+	url = https://github.com/zotero/translate.git
