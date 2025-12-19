@@ -75,6 +75,35 @@ function processUtilitiesModule(code: string): string {
   code = code.replace(/let document = \(new JSDOM\(str\)\)\.window\.document;/g, 'throw new Error("JSDOM not available in browser environment");');
   code = code.replace(/let document = \(new JSDOM\(wrappedNote\)\)\.window\.document;/g, 'throw new Error("JSDOM not available in browser environment");');
 
+  // FIX 1: Fix cleanAuthor variable scoping
+  // Hoist firstName and lastName declarations to top of cleanAuthor function
+  code = code.replace(
+    /(cleanAuthor\s*:\s*function\s*\([^)]*\)\s*\{\s*\n)/,
+    '$1\t\tvar firstName, lastName;\n'
+  );
+
+  // Remove all 'var' keywords before firstName and lastName assignments within cleanAuthor
+  // Match only within cleanAuthor function by looking for the pattern more specifically
+  code = code.replace(
+    /(\bvar\s+(firstName|lastName)\s*=\s*(?:author|splitNames\[\d+\]|author\.substring))/g,
+    (match, fullMatch, varName) => {
+      return varName + ' =' + fullMatch.substring(fullMatch.indexOf('=') + 1);
+    }
+  );
+
+  // FIX 2: Fix return type inconsistencies - change "return false" to "return ''" in validation functions
+  // cleanISBN should return empty string instead of false
+  code = code.replace(
+    /(cleanISBN\s*:\s*function[^{]*\{[\s\S]*?)return false;([\s\S]*?^\t},?$)/m,
+    '$1return "";$2'
+  );
+
+  // cleanISSN should return empty string instead of false
+  code = code.replace(
+    /(cleanISSN\s*:\s*function[^{]*\{[\s\S]*?)return false;([\s\S]*?^\t},?$)/m,
+    '$1return "";$2'
+  );
+
   return code;
 }
 
@@ -88,6 +117,12 @@ function processDateModule(code: string): string {
 
   // Remove CommonJS exports
   code = code.replace(/if\s*\(\s*typeof\s+module\s*!=\s*['"]undefined['"]\s*\)\s*{\s*module\.exports\s*=\s*Utilities_Date;\s*}\s*else\s*if\s*\(\s*typeof\s+Zotero\s*!=\s*['"]undefined['"]\s*\)\s*{\s*Zotero\.Date\s*=\s*Utilities_Date;\s*}/g, '');
+
+  // FIX: strToISO should return empty string instead of false
+  code = code.replace(
+    /(this\.strToISO\s*=\s*function[\s\S]*?)return false;([\s\S]*?^\t})/m,
+    '$1return "";$2'
+  );
 
   return code;
 }
@@ -159,7 +194,12 @@ ${utilities}
 Utilities.XRegExp = function(pattern, flags) {
   // Simple XRegExp fallback using native RegExp
   // Replace Unicode property escapes with simpler patterns
-  let nativePattern = pattern.replace(/\\pL/g, '[a-zA-Z]');
+  let nativePattern = pattern;
+
+  // Handle different escaping levels in the pattern string
+  nativePattern = nativePattern.replace(/\\\\\\\\pL/g, '[a-zA-Z]');
+  nativePattern = nativePattern.replace(/\\\\pL/g, '[a-zA-Z]');
+
   return new RegExp(nativePattern, flags);
 };
 
