@@ -11,11 +11,10 @@ import type {
 } from './types';
 import type { TranslatorRegistryEntry } from './translators-registry';
 import { executeDetectWeb, executeDoWeb, parseHTMLDocument } from './executor';
+import { Zotero } from './utilities-translate-bundle';
 
 export { parseHTMLDocument, executeDetectWeb, executeDoWeb } from './executor';
 export { Item } from './item';
-export { ZU } from './utilities-bundle';
-export * from './utilities-translate-bundle'; // Export translate-specific utilities (processDocuments, requestDocument, getItemArray, etc.)
 export { parseTranslatorMetadata } from './translator-loader';
 
 // Will be generated at build time
@@ -60,10 +59,11 @@ export async function extractMetadata(
     typeof options === 'string' ? { url: options } : options;
 
   const { url, html, headers, timeout = 10000, dependencies } = opts;
+  const translate = new Zotero.Translate.Web();
 
-  try {
-    // Load translators registry
-    await loadRegistry();
+  // try {
+  //   // Load translators registry
+  //   await loadRegistry();
 
     // Get HTML content
     let htmlContent = html;
@@ -88,63 +88,64 @@ export async function extractMetadata(
 
     // Parse HTML into Document
     const doc = parseHTMLDocument(htmlContent, url, dependencies);
+  	translate.setDocument(doc);
+   return await translate.translate();
+  //   // Find matching translators
+  //   const matchingTranslators = findTranslatorsForUrl(url);
 
-    // Find matching translators
-    const matchingTranslators = findTranslatorsForUrl(url);
+  //   if (matchingTranslators.length === 0) {
+  //     return {
+  //       success: false,
+  //       error: 'No matching translator found for this URL',
+  //     };
+  //   }
 
-    if (matchingTranslators.length === 0) {
-      return {
-        success: false,
-        error: 'No matching translator found for this URL',
-      };
-    }
+  //   // Try translators in priority order
+  //   for (const entry of matchingTranslators) {
+  //     try {
+  //       // Translator code is already bundled in the entry
+  //       const translator: Translator = {
+  //         metadata: entry.metadata,
+  //         code: entry.code,
+  //       };
 
-    // Try translators in priority order
-    for (const entry of matchingTranslators) {
-      try {
-        // Translator code is already bundled in the entry
-        const translator: Translator = {
-          metadata: entry.metadata,
-          code: entry.code,
-        };
+  //       // Check if translator can handle this page
+  //       const itemType = await executeDetectWeb(translator, doc, url, dependencies);
 
-        // Check if translator can handle this page
-        const itemType = await executeDetectWeb(translator, doc, url, dependencies);
+  //       if (!itemType) {
+  //         continue; // Try next translator
+  //       }
 
-        if (!itemType) {
-          continue; // Try next translator
-        }
+  //       // Extract metadata
+  //       const items = await executeDoWeb(translator, doc, url, dependencies);
 
-        // Extract metadata
-        const items = await executeDoWeb(translator, doc, url, dependencies);
+  //       if (items.length > 0) {
+  //         return {
+  //           success: true,
+  //           items,
+  //           translator: translator.metadata.label,
+  //         };
+  //       }
+  //     } catch (e) {
+  //       console.error(
+  //         `Error with translator ${entry.metadata.label}:`,
+  //         e
+  //       );
+  //       // Try next translator
+  //       continue;
+  //     }
+  //   }
 
-        if (items.length > 0) {
-          return {
-            success: true,
-            items,
-            translator: translator.metadata.label,
-          };
-        }
-      } catch (e) {
-        console.error(
-          `Error with translator ${entry.metadata.label}:`,
-          e
-        );
-        // Try next translator
-        continue;
-      }
-    }
-
-    return {
-      success: false,
-      error: 'No translator could extract metadata from this page',
-    };
-  } catch (e) {
-    return {
-      success: false,
-      error: e instanceof Error ? e.message : String(e),
-    };
-  }
+  //   return {
+  //     success: false,
+  //     error: 'No translator could extract metadata from this page',
+  //   };
+  // } catch (e) {
+  //   return {
+  //     success: false,
+  //     error: e instanceof Error ? e.message : String(e),
+  //   };
+  // }
 }
 
 /**

@@ -3,8 +3,6 @@
  */
 
 import { Item } from './item';
-import { ZU, attr, text } from './utilities-bundle';
-import * as TranslateUtils from './utilities-translate-bundle';
 import type { Translator, ZoteroItem, ItemType, ExtractMetadataOptions } from './types';
 import type { TranslatorRegistryEntry } from './translators-registry';
 
