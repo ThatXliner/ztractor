@@ -9,13 +9,77 @@ Zotero.Translators = new function() {
 	this._cache = {"import":[], "export":[], "web":[], "search":[]};
 	// Should set to true after translators are loaded into memory
 	this._initialized = false;
+	// TODO for tomorrow (ThatXliner, 2025-12-20): change this init code to be
+	// adapted to how we have the registry
+	/**
+	 * Initializes translator cache, loading all relevant translators into memory
+		* The thing is, we could choose to use the web to load translators from Zotero's server
+		* or we could bundle them
+	 * @param {Zotero.Translate[]} [translators] List of translators. If not specified, it will be
+	 *                                           retrieved from storage.
+	 */
+	this.init = async function() {
+	// @MODIFIED
+	// XXX: or use bundled?
+		var translators = await Zotero.Repo.getAllTranslatorMetadata();
 
+		this._cache = {"import":[], "export":[], "web":[], "search":[]};
+		_translators = {};
+
+		// Build caches
+		for(var i=0; i<translators.length; i++) {
+			try {
+				var translator = new Zotero.Translator(translators[i]);
+				_translators[translator.translatorID] = translator;
+
+				for(var type in TRANSLATOR_TYPES) {
+					if(translator.translatorType & TRANSLATOR_TYPES[type]) {
+						this._cache[type].push(translator);
+					}
+				}
+			} catch(e) {
+				Zotero.logError(e);
+				try {
+					Zotero.logError("Could not load translator "+JSON.stringify(translators[i]));
+				} catch(e) {}
+			}
+		}
+
+		// Sort by priority
+		var cmp = function (a, b) {
+			if (a.priority > b.priority) {
+				return 1;
+			}
+			else if (a.priority < b.priority) {
+				return -1;
+			}
+		}
+		for(var type in this._cache) {
+			this._cache[type].sort(cmp);
+		}
+		this._initialized = true;
+	}
 	/**
 	 * Gets the translator that corresponds to a given ID with code set
 	 * @param {String} id The ID of the translator
 	 */
-	this.get = function (id) {
-		throw new Error(`Zotero.Translators.get(): not implemented`);
+	this.get = async function (id) {
+	// @MODIFIED
+    if (!this._initialized) await Zotero.Translators.init();
+			var translator = _translators[id];
+			if (!translator) {
+				return false;
+			}
+
+			// only need to get code if it is of some use
+			if (translator.runMode === Zotero.Translator.RUN_MODE_IN_BROWSER
+					&& !translator.hasOwnProperty("code")) {
+
+				translator.code = await Zotero.Translators.getCodeForTranslator(translator);
+				return translator;
+			} else {
+				return translator;
+			}
 	};
 
 	/**
@@ -31,7 +95,11 @@ Zotero.Translators = new function() {
 	 * @return {String} translator code
 	 */
 	this.getCodeForTranslator = Zotero.Promise.method(async function (translator) {
-		throw new Error(`Zotero.Translators.getCodeForTranslator(): not implemented`);
+	// @MODIFIED
+	if (translator.code) return translator.code;
+	let code = await Zotero.Repo.getTranslatorCode(translator.translatorID);
+	translator.code = code;
+	return code;
 	});
 
 	/**
@@ -39,7 +107,12 @@ Zotero.Translators = new function() {
 	 * @param {String} type The type of translators to get (import, export, web, or search)
 	 */
 	this.getAllForType = async function (type) {
-		throw new Error(`Zotero.Translators.getAllForType(): not implemented`);
+	// @MODIFIED
+	if(!this._initialized) await Zotero.Translators.init();
+			var translators = this._cache[type].slice(0);
+			var codeGetter = new Zotero.Translators.CodeGetter(translators);
+			await codeGetter.getAll();
+			return translators;
 	};
 
 	/**
@@ -184,126 +257,162 @@ Zotero.HTTP = new function() {
 	 *     request succeeds, or rejected if the browser is offline or a non-2XX status response
 	 *     code is received (or a code not in options.successCodes if provided).
 	 */
-	this.request = function(method, url, options = {}) {
-		// Default options
-		options = Object.assign({
-			body: null,
-			headers: {},
-			debug: false,
-			logBodyLength: 1024,
-			timeout: 15000,
-			responseType: '',
-			responseCharset: null,
-			successCodes: null
-		}, options);
+		this.request = async function(method, url, options = {}) {
+  		// @MODIFIED
+			// Default options
+			options = Object.assign({
+				body: null,
+				headers: {},
+				debug: false,
+				logBodyLength: 1024,
+				timeout: 15000,
+				responseType: '',
+				responseCharset: null,
+				successCodes: null
+			}, options);
 
 
-		let logBody = '';
-		if (['GET', 'HEAD'].includes(method)) {
-			if (options.body != null) {
-				throw new Error(`HTTP ${method} cannot have a request body (${options.body})`)
-			}
-		} else if(options.body) {
-			options.body = typeof options.body == 'string' ? options.body : JSON.stringify(options.body);
-
-			if (!options.headers) options.headers = {};
-			if (!options.headers["Content-Type"]) {
-				options.headers["Content-Type"] = "application/x-www-form-urlencoded";
-			}
-			else if (options.headers["Content-Type"] == 'multipart/form-data') {
-				// Allow XHR to set Content-Type with boundary for multipart/form-data
-				delete options.headers["Content-Type"];
-			}
-
-			logBody = `: ${options.body.substr(0, options.logBodyLength)}` +
-					options.body.length > options.logBodyLength ? '...' : '';
-			// TODO: make sure below does its job in every API call instance
-			// Don't display password or session id in console
-			logBody = logBody.replace(/password":"[^"]+/, 'password":"********');
-			logBody = logBody.replace(/password=[^&]+/, 'password=********');
-		}
-		Zotero.debug(`HTTP ${method} ${url}${logBody}`);
-
-		var xmlhttp = new XMLHttpRequest();
-		xmlhttp.timeout = options.timeout;
-		var promise = Zotero.HTTP._attachHandlers(url, xmlhttp, options);
-
-		xmlhttp.open(method, url, true);
-
-		for (let header in options.headers) {
-			xmlhttp.setRequestHeader(header, options.headers[header]);
-		}
-
-		xmlhttp.responseType = options.responseType || '';
-
-		// Maybe should provide "mimeType" option instead. This is xpcom legacy, where responseCharset
-		// could be controlled manually
-		if (options.responseCharset) {
-			xmlhttp.overrideMimeType("text/plain; charset=" + options.responseCharset);
-		}
-
-		xmlhttp.send(options.body);
-
-		return promise.then(function(xmlhttp) {
-			if (options.debug) {
-				if (xmlhttp.responseType == '' || xmlhttp.responseType == 'text') {
-					Zotero.debug(`HTTP ${xmlhttp.status} response: ${xmlhttp.responseText}`);
+			let logBody = '';
+			if (['GET', 'HEAD'].includes(method)) {
+				if (options.body != null) {
+					throw new Error(`HTTP ${method} cannot have a request body (${options.body})`)
 				}
-				else {
-					Zotero.debug(`HTTP ${xmlhttp.status} response`);
-				}
-			}
+			} else if(options.body) {
+				options.body = typeof options.body == 'string' ? options.body : JSON.stringify(options.body);
 
-			let invalidDefaultStatus = options.successCodes === null && !xmlhttp.responseURL.startsWith("file://") &&
-				(xmlhttp.status < 200 || xmlhttp.status >= 300);
-			let invalidStatus = Array.isArray(options.successCodes) && !options.successCodes.includes(xmlhttp.status);
-			if (invalidDefaultStatus || invalidStatus) {
+				if (!options.headers) options.headers = {};
+				if (!options.headers["Content-Type"]) {
+					options.headers["Content-Type"] = "application/x-www-form-urlencoded";
+				}
+				else if (options.headers["Content-Type"] == 'multipart/form-data') {
+					// Allow fetch to set Content-Type with boundary for multipart/form-data
+					delete options.headers["Content-Type"];
+				}
+
+				logBody = `: ${options.body.substr(0, options.logBodyLength)}` +
+						options.body.length > options.logBodyLength ? '...' : '';
+				// TODO: make sure below does its job in every API call instance
+				// Don't display password or session id in console
+				logBody = logBody.replace(/password":"[^"]+/, 'password":"********');
+				logBody = logBody.replace(/password=[^&]+/, 'password=********');
+			}
+			Zotero.debug(`HTTP ${method} ${url}${logBody}`);
+
+			// Set up fetch options
+			const fetchOptions = {
+				method: method,
+				headers: options.headers,
+				body: options.body
+			};
+
+			// Create AbortController for timeout
+			const controller = new AbortController();
+			const timeoutId = setTimeout(() => controller.abort(), options.timeout);
+			fetchOptions.signal = controller.signal;
+
+			try {
+				const response = await fetch(url, fetchOptions);
+				clearTimeout(timeoutId);
+
+				// Create XMLHttpRequest-like object for compatibility
+				const xmlhttp = {
+					status: response.status,
+					responseURL: response.url,
+					responseType: options.responseType || '',
+					responseText: '',
+					response: null
+				};
+
+				// Handle different response types
+				if (options.responseType === 'arraybuffer') {
+					xmlhttp.response = await response.arrayBuffer();
+				} else if (options.responseType === 'blob') {
+					xmlhttp.response = await response.blob();
+				} else if (options.responseType === 'json') {
+					xmlhttp.response = await response.json();
+				} else {
+					// Default to text
+					xmlhttp.responseText = await response.text();
+					xmlhttp.response = xmlhttp.responseText;
+				}
+
+				if (options.debug) {
+					if (xmlhttp.responseType == '' || xmlhttp.responseType == 'text') {
+						Zotero.debug(`HTTP ${xmlhttp.status} response: ${xmlhttp.responseText}`);
+					}
+					else {
+						Zotero.debug(`HTTP ${xmlhttp.status} response`);
+					}
+				}
+
+				let invalidDefaultStatus = options.successCodes === null && !xmlhttp.responseURL.startsWith("file://") &&
+					(xmlhttp.status < 200 || xmlhttp.status >= 300);
+				let invalidStatus = Array.isArray(options.successCodes) && !options.successCodes.includes(xmlhttp.status);
+				if (invalidDefaultStatus || invalidStatus) {
+					throw new Zotero.HTTP.StatusError(xmlhttp, url);
+				}
+				return xmlhttp;
+
+			} catch (error) {
+				clearTimeout(timeoutId);
+
+				if (error.name === 'AbortError') {
+					const timeoutError = new Zotero.HTTP.TimeoutError(options.timeout);
+					Zotero.logError(timeoutError);
+					throw timeoutError;
+				}
+
+				// Create XMLHttpRequest-like object for fetch errors
+				const xmlhttp = {
+					status: 0,
+					responseURL: url,
+					responseText: error.message
+				};
+
 				throw new Zotero.HTTP.StatusError(xmlhttp, url);
 			}
-			return xmlhttp;
-		});
-	};
-	/**
-	* Send an HTTP GET request via XMLHTTPRequest
-	*
-	* @deprecated Use {@link Zotero.HTTP.request}
-	* @param {String}			url				URL to request
-	* @param {Function} 		onDone			Callback to be executed upon request completion
-	* @param {String}			responseCharset
-	* @param {N/A}				cookieSandbox	Not used in Connector
-	* @param {Object}			headers			HTTP headers to include with the request
-	* @return {Boolean} True if the request was sent, or false if the browser is offline
-	*/
-	this.doGet = function(url, onDone, responseCharset, cookieSandbox, headers) {
-		Zotero.debug('Zotero.HTTP.doGet is deprecated. Use Zotero.HTTP.request');
-		this.request('GET', url, {responseCharset, headers})
-		.then(onDone, function(e) {
-			onDone({status: e.status, responseText: e.responseText});
-			throw (e);
-		});
-		return true;
-	};
+		};
+		/**
+		* Send an HTTP GET request via fetch
+		*
+		* @deprecated Use {@link Zotero.HTTP.request}
+		* @param {String}			url				URL to request
+		* @param {Function} 		onDone			Callback to be executed upon request completion
+		* @param {String}			responseCharset
+		* @param {N/A}				cookieSandbox	Not used in Connector
+		* @param {Object}			headers			HTTP headers to include with the request
+		* @return {Boolean} True if the request was sent, or false if the browser is offline
+		*/
+		this.doGet = function(url, onDone, responseCharset, cookieSandbox, headers) {
+			Zotero.debug('Zotero.HTTP.doGet is deprecated. Use Zotero.HTTP.request');
+			this.request('GET', url, {responseCharset, headers})
+			.then(onDone, function(e) {
+				onDone({status: e.status, responseText: e.responseText});
+				throw (e);
+			});
+			return true;
+		};
 
-	/**
-	* Send an HTTP POST request via XMLHTTPRequest
-	*
-	* @deprecated Use {@link Zotero.HTTP.request}
-	* @param {String}			url URL to request
-	* @param {String|Object[]}	body Request body
-	* @param {Function}			onDone Callback to be executed upon request completion
-	* @param {String}			headers Request HTTP headers
-	* @param {String}			responseCharset
-	* @return {Boolean} True if the request was sent, or false if the browser is offline
-	*/
-	this.doPost = function(url, body, onDone, headers, responseCharset) {
-		Zotero.debug('Zotero.HTTP.doPost is deprecated. Use Zotero.HTTP.request');
-		this.request('POST', url, {body, responseCharset, headers})
-		.then(onDone, function(e) {
-			onDone({status: e.status, responseText: e.responseText});
-			throw (e);
-		});
-		return true;
-	};
+		/**
+		* Send an HTTP POST request via fetch
+		*
+		* @deprecated Use {@link Zotero.HTTP.request}
+		* @param {String}			url URL to request
+		* @param {String|Object[]}	body Request body
+		* @param {Function}			onDone Callback to be executed upon request completion
+		* @param {String}			headers Request HTTP headers
+		* @param {String}			responseCharset
+		* @return {Boolean} True if the request was sent, or false if the browser is offline
+		*/
+		this.doPost = function(url, body, onDone, headers, responseCharset) {
+			Zotero.debug('Zotero.HTTP.doPost is deprecated. Use Zotero.HTTP.request');
+			this.request('POST', url, {body, responseCharset, headers})
+			.then(onDone, function(e) {
+				onDone({status: e.status, responseText: e.responseText});
+				throw (e);
+			});
+			return true;
+		};
 
 
 	/**
@@ -398,7 +507,10 @@ Zotero.Translate.ItemSaver.prototype.saveCollection = function(collections) {};
  *     done saving with a list of items. Can include saved notes, but should exclude attachments.
  */
 Zotero.Translate.ItemSaver.prototype.saveItems = async function (jsonItems, attachmentCallback, itemsDoneCallback) {
-	throw new Error(`Zotero.Translate.ItemSaver.prototype.saveItems: not implemented`);
+  // @MODIFIED
+  this.items = (this.items || []).concat(jsonItems);
+	return jsonItems
+	// throw new Error(`Zotero.Translate.ItemSaver.prototype.saveItems: not implemented`);
 };
 
 // Used by export translators in Zotero

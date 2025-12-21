@@ -11,6 +11,8 @@ This is a monorepo containing two packages:
 - **[ztractor](./packages/core)** - Core package for browsers and Node.js
 - **[ztractor-node](./packages/node)** - Node.js optimized version with linkedom for faster DOM parsing
 
+Our current implementation bundles all of the translators and the https://github.com/zotero/translate code. In future versions, we will cut down on the code by manually re-writing the executors for modern JS and provide options to load translators from Zotero's server or bundle them.
+
 ## Installation
 
 **For browsers or universal use:**
