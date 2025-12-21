@@ -8,7 +8,7 @@
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { readdir } from 'node:fs/promises';
 import { join } from 'path';
-const NEED_TO_REIMPL = ["translators.js", "http.js", "translation/translate_item.js"]
+const NEED_TO_REIMPL = ["translators.js", "http.js", "translation/translate_item.js", "proxy.js"]
 async function main() {
   const translateDir = join(process.cwd(), 'translate');
   const srcDir = join(translateDir, 'src');
@@ -53,9 +53,9 @@ export { Zotero };
 `;
 }
 function processFile(file: string): string {
-  let processed = file.replace(/\(function\(\) \{/g, '');
-  processed = processed.replace(/}\)\(\);/g, '');
-  return processed;
+  // let processed = file.replace(/^.+?\(function\(\)\s*\{\s*"use strict";\s*(.+)}\)\(\);$/s, '$1');
+  // processed = processed.replace(/}\)\(\);^(\s*)$/, '');
+  return file;
 }
 main().catch((err) => {
   console.error('Error bundling translate utilities:', err);
