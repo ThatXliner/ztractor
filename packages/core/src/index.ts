@@ -15,6 +15,7 @@ import { executeDetectWeb, executeDoWeb, parseHTMLDocument } from './executor';
 export { parseHTMLDocument, executeDetectWeb, executeDoWeb } from './executor';
 export { Item } from './item';
 export { ZU } from './utilities-bundle';
+export * from './utilities-translate-bundle'; // Export translate-specific utilities (processDocuments, requestDocument, getItemArray, etc.)
 export { parseTranslatorMetadata } from './translator-loader';
 
 // Will be generated at build time

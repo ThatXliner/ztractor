@@ -4,6 +4,7 @@
 
 import { Item } from './item';
 import { ZU, attr, text } from './utilities-bundle';
+import * as TranslateUtils from './utilities-translate-bundle';
 import type { Translator, ZoteroItem, ItemType, ExtractMetadataOptions } from './types';
 import type { TranslatorRegistryEntry } from './translators-registry';
 
@@ -198,10 +199,12 @@ export async function executeDoWeb(
 
       fn(doc, url, sandbox.Zotero, sandbox.ZU, attr, text, request, requestText, requestJSON, dependencies.DOMParser, XPathResult, exports, Z);
 
-      // Give translators a moment to complete async operations
+      // Give translators time to complete async operations
+      // TODO: Implement proper promise tracking instead of fixed timeout
+      // Translators using processDocuments() or multiple async requests need more time
       setTimeout(() => {
         resolve(items);
-      }, 100);
+      }, 30000); // 30 seconds timeout (increased from 100ms to support async operations)
     } catch (e) {
       console.error(`Error executing doWeb for ${translator.metadata.label}:`, e);
       // Return empty array on error instead of rejecting
@@ -222,9 +225,10 @@ function createSandbox(
   const items: Item[] = [];
   let selectItemsCallback: ((items: Record<string, string>) => void) | null = null;
 
-  // Create a wrapped ZU that resolves relative URLs
+  // Create a wrapped ZU that resolves relative URLs and includes translate utilities
   const wrappedZU = {
     ...ZU,
+    ...TranslateUtils, // Add all translate-specific utilities (processDocuments, requestDocument, getItemArray, etc.)
     async doGet(requestUrl: string, done?: (text: string) => void): Promise<string> {
       // Resolve relative URLs against the page URL
       const absoluteUrl = requestUrl.startsWith('/') || requestUrl.startsWith('./')
