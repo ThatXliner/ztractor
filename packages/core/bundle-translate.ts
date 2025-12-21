@@ -13,7 +13,7 @@ import recast from "recast";
 import * as babelParser from "@babel/parser";
 // TODO: concat in order
 // TODO: modules folder too
-const NEED_TO_REIMPL = ["translators.js", "http.js", "translation/translate_item.js", "proxy.js"]
+const NEED_TO_REIMPL = ["translators.js", "http.js", "translation/translate_item.js"]
 const CONCAT_ORDER = [
 "src/zotero.js",
 "src/promise.js",
