@@ -3,35 +3,73 @@
  * Use Zotero translators to extract metadata from websites
  */
 
-import type {
-  ExtractMetadataOptions,
-  ExtractMetadataResult,
-  ZoteroItem,
-  Translator,
-} from './types';
-import type { TranslatorRegistryEntry } from './translators-registry';
-import { executeDetectWeb, executeDoWeb, parseHTMLDocument } from './executor';
-import { Zotero } from './utilities-translate-bundle';
+import type { TranslatorRegistry } from "./registry";
 
-export { parseHTMLDocument, executeDetectWeb, executeDoWeb } from './executor';
-export { Item } from './item';
-export { parseTranslatorMetadata } from './translator-loader';
+// import type {
+//   ExtractMetadataOptions,
+//   ExtractMetadataResult,
+//   ZoteroItem,
+//   Translator,
+// } from './types';
+// import type { TranslatorRegistryEntry } from './translators-registry';
+// import { executeDetectWeb, executeDoWeb, parseHTMLDocument } from './executor';
+// import { Zotero } from './utilities-translate-bundle';
 
-// Will be generated at build time
-let translatorsRegistry: TranslatorRegistryEntry[];
-let findTranslatorsForUrl: (url: string) => TranslatorRegistryEntry[];
+// export { parseHTMLDocument, executeDetectWeb, executeDoWeb } from './executor';
+// export { Item } from './item';
+// export { parseTranslatorMetadata } from './translator-loader';
 
-// Lazy load the registry
-async function loadRegistry(): Promise<void> {
-  if (!translatorsRegistry) {
-    const module = await import('./translators-registry');
-    translatorsRegistry = module.TRANSLATORS_REGISTRY;
-    findTranslatorsForUrl = module.findTranslatorsForUrl;
-  }
-}
+// // Will be generated at build time
+// let translatorsRegistry: TranslatorRegistryEntry[];
+// let findTranslatorsForUrl: (url: string) => TranslatorRegistryEntry[];
 
+// // Lazy load the registry
+// async function loadRegistry(): Promise<void> {
+//   if (!translatorsRegistry) {
+//     const module = await import('./translators-registry');
+//     translatorsRegistry = module.TRANSLATORS_REGISTRY;
+//     findTranslatorsForUrl = module.findTranslatorsForUrl;
+//   }
+// }
 /**
- * Extract metadata from a URL
+ * Extract metadata options
+ */
+export interface ExtractMetadataOptions {
+	/**
+	 * The URL to extract metadata from
+	 */
+	url: string;
+
+	/**
+	 * Optional HTML content. If not provided, will be fetched.
+	 */
+	html?: string;
+
+	/**
+	 * Optional HTTP headers for fetching
+	 */
+	headers?: Record<string, string>;
+
+	/**
+	 * Timeout in milliseconds
+	 */
+	timeout?: number;
+
+	/**
+	 * The translator registry to use
+	 */
+	registry?: TranslatorRegistry;
+
+	/**
+	 * Optional dependencies to inject (for Node.js environment)
+	 */
+	dependencies?: {
+		DOMParser: any;
+		parseHTMLDocument?: (html: string, url: string) => any;
+	};
+}
+/**
+ * Extract metadata from a URL. For now we only support web Zotero translators.
  *
  * @param url - The URL to extract metadata from
  * @param html - Optional HTML content. If not provided, will be fetched.
@@ -52,146 +90,150 @@ async function loadRegistry(): Promise<void> {
  * ```
  */
 export async function extractMetadata(
-  options: string | ExtractMetadataOptions
+	options: string | ExtractMetadataOptions,
 ): Promise<ExtractMetadataResult> {
-  // Normalize options
-  const opts: ExtractMetadataOptions =
-    typeof options === 'string' ? { url: options } : options;
+	// Normalize options
+	const opts: ExtractMetadataOptions =
+		typeof options === "string" ? { url: options } : options;
 
-  const { url, html, headers, timeout = 10000, dependencies } = opts;
-  const translate = new Zotero.Translate.Web();
+	const { url, html, headers, timeout = 10000, dependencies } = opts;
+	// const translate = new Zotero.Translate.Web();
 
-  // try {
-  //   // Load translators registry
-  //   await loadRegistry();
+	// try {
+	//   // Load translators registry
+	//   await loadRegistry();
 
-    // Get HTML content
-    let htmlContent = html;
-    if (!htmlContent) {
-      const response = await fetch(url, {
-        headers: headers || {
-          'User-Agent':
-            'Mozilla/5.0 (compatible; Ztractor/1.0; +https://github.com/zotero/translators)',
-        },
-        signal: AbortSignal.timeout(timeout),
-      });
+	// Get HTML content
+	let htmlContent = html;
+	if (!htmlContent) {
+		const response = await fetch(url, {
+			headers: headers || {
+				"User-Agent":
+					"Mozilla/5.0 (compatible; Ztractor/1.0; +https://github.com/zotero/translators)",
+			},
+			signal: AbortSignal.timeout(timeout),
+		});
 
-      if (!response.ok) {
-        return {
-          success: false,
-          error: `HTTP ${response.status}: ${response.statusText}`,
-        };
-      }
+		if (!response.ok) {
+			return {
+				success: false,
+				error: `HTTP ${response.status}: ${response.statusText}`,
+			};
+		}
 
-      htmlContent = await response.text();
-    }
+		htmlContent = await response.text();
+	}
 
-    // Parse HTML into Document
-    const doc = parseHTMLDocument(htmlContent, url, dependencies);
-  	translate.setDocument(doc);
-   return await translate.translate();
-  //   // Find matching translators
-  //   const matchingTranslators = findTranslatorsForUrl(url);
+	// Parse HTML into Document
+	const doc = parseHTMLDocument(htmlContent, url, dependencies);
+	translate.setDocument(doc);
+	return await translate.translate();
+	//   // Find matching translators
+	//   const matchingTranslators = findTranslatorsForUrl(url);
 
-  //   if (matchingTranslators.length === 0) {
-  //     return {
-  //       success: false,
-  //       error: 'No matching translator found for this URL',
-  //     };
-  //   }
+	//   if (matchingTranslators.length === 0) {
+	//     return {
+	//       success: false,
+	//       error: 'No matching translator found for this URL',
+	//     };
+	//   }
 
-  //   // Try translators in priority order
-  //   for (const entry of matchingTranslators) {
-  //     try {
-  //       // Translator code is already bundled in the entry
-  //       const translator: Translator = {
-  //         metadata: entry.metadata,
-  //         code: entry.code,
-  //       };
+	//   // Try translators in priority order
+	//   for (const entry of matchingTranslators) {
+	//     try {
+	//       // Translator code is already bundled in the entry
+	//       const translator: Translator = {
+	//         metadata: entry.metadata,
+	//         code: entry.code,
+	//       };
 
-  //       // Check if translator can handle this page
-  //       const itemType = await executeDetectWeb(translator, doc, url, dependencies);
+	//       // Check if translator can handle this page
+	//       const itemType = await executeDetectWeb(translator, doc, url, dependencies);
 
-  //       if (!itemType) {
-  //         continue; // Try next translator
-  //       }
+	//       if (!itemType) {
+	//         continue; // Try next translator
+	//       }
 
-  //       // Extract metadata
-  //       const items = await executeDoWeb(translator, doc, url, dependencies);
+	//       // Extract metadata
+	//       const items = await executeDoWeb(translator, doc, url, dependencies);
 
-  //       if (items.length > 0) {
-  //         return {
-  //           success: true,
-  //           items,
-  //           translator: translator.metadata.label,
-  //         };
-  //       }
-  //     } catch (e) {
-  //       console.error(
-  //         `Error with translator ${entry.metadata.label}:`,
-  //         e
-  //       );
-  //       // Try next translator
-  //       continue;
-  //     }
-  //   }
+	//       if (items.length > 0) {
+	//         return {
+	//           success: true,
+	//           items,
+	//           translator: translator.metadata.label,
+	//         };
+	//       }
+	//     } catch (e) {
+	//       console.error(
+	//         `Error with translator ${entry.metadata.label}:`,
+	//         e
+	//       );
+	//       // Try next translator
+	//       continue;
+	//     }
+	//   }
 
-  //   return {
-  //     success: false,
-  //     error: 'No translator could extract metadata from this page',
-  //   };
-  // } catch (e) {
-  //   return {
-  //     success: false,
-  //     error: e instanceof Error ? e.message : String(e),
-  //   };
-  // }
+	//   return {
+	//     success: false,
+	//     error: 'No translator could extract metadata from this page',
+	//   };
+	// } catch (e) {
+	//   return {
+	//     success: false,
+	//     error: e instanceof Error ? e.message : String(e),
+	//   };
+	// }
 }
 
 /**
  * Get list of all available translators
  */
-export async function getAvailableTranslators(): Promise<{
-    id: string;
-    label: string;
-    target: string;
-    priority: number;
-}[]> {
-  await loadRegistry();
-  return translatorsRegistry.map((entry) => ({
-    id: entry.metadata.translatorID,
-    label: entry.metadata.label,
-    target: entry.metadata.target,
-    priority: entry.metadata.priority,
-  }));
+export async function getAvailableTranslators(): Promise<
+	{
+		id: string;
+		label: string;
+		target: string;
+		priority: number;
+	}[]
+> {
+	await loadRegistry();
+	return translatorsRegistry.map((entry) => ({
+		id: entry.metadata.translatorID,
+		label: entry.metadata.label,
+		target: entry.metadata.target,
+		priority: entry.metadata.priority,
+	}));
 }
 
 /**
  * Find translators that match a URL
  */
-export async function findTranslators(url: string): Promise<{
-    id: string;
-    label: string;
-    target: string;
-    priority: number;
-}[]> {
-  await loadRegistry();
-  return findTranslatorsForUrl(url).map((entry) => ({
-    id: entry.metadata.translatorID,
-    label: entry.metadata.label,
-    target: entry.metadata.target,
-    priority: entry.metadata.priority,
-  }));
+export async function findTranslators(url: string): Promise<
+	{
+		id: string;
+		label: string;
+		target: string;
+		priority: number;
+	}[]
+> {
+	await loadRegistry();
+	return findTranslatorsForUrl(url).map((entry) => ({
+		id: entry.metadata.translatorID,
+		label: entry.metadata.label,
+		target: entry.metadata.target,
+		priority: entry.metadata.priority,
+	}));
 }
 
-// Re-export types
-export type {
-  ExtractMetadataOptions,
-  ExtractMetadataResult,
-  ZoteroItem,
-  ItemType,
-  Creator,
-  Tag,
-  Note,
-  Attachment,
-} from './types';
+// // Re-export types
+// export type {
+//   ExtractMetadataOptions,
+//   ExtractMetadataResult,
+//   ZoteroItem,
+//   ItemType,
+//   Creator,
+//   Tag,
+//   Note,
+//   Attachment,
+// } from './types';
