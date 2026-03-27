@@ -2,11 +2,11 @@
 
 ## What This Is
 
-Ztractor is a programmatic API for Zotero's 600+ web translators — libraries that extract structured bibliographic metadata (title, authors, DOI, publication info, etc.) from websites. It fills a gap Zotero itself doesn't address: there's no easy-to-use standalone library, only internal extension code and the largely unmaintained zotero-server. Ztractor wraps that logic into two clean npm packages: `ztractor` (browser-universal) and `ztractor-node` (Node.js with pre-wired DOM).
+Ztractor is a programmatic API for Zotero's 600+ web translators — libraries that extract structured bibliographic metadata (title, authors, DOI, publication info, etc.) from websites. A version already exists on npm, but the translator execution sandbox isn't fully compatible with what real translators expect. This rewrite re-implements the sandbox in modern JS to match Zotero's actual API surface, so that the full translator library works correctly.
 
 ## Core Value
 
-A developer can call `extractMetadata(url)` and get back structured Zotero items — without understanding Zotero internals, translator formats, or sandbox execution.
+The sandbox is compatible enough that real Zotero translators pass Zotero's own test suite — meaning any translator that works in Zotero works in ztractor.
 
 ## Requirements
 
@@ -24,9 +24,9 @@ A developer can call `extractMetadata(url)` and get back structured Zotero items
 
 ### Active
 
-- [ ] `packages/node` (`ztractor-node`) — Node.js package with linkedom + XPath pre-wired, so users don't inject dependencies manually
-- [ ] High translator compatibility — full Zotero translator API surface coverage so any web translator can run
-- [ ] `executeTranslator(translator, html)` — low-level API for running a specific translator directly
+- [ ] Sandbox compatibility — full Zotero translator API surface (ZU.*, Zotero.Item, calling conventions) so real translators run correctly
+- [ ] Passes Zotero's own translator test suite — the gold standard for compatibility
+- [ ] `ztractor-node` package — Node.js wrapper with linkedom + XPath pre-wired
 - [ ] npm publish — both packages published to npm public registry with proper exports, types, READMEs
 - [ ] README for both packages — install instructions + quick-start example
 
@@ -43,9 +43,11 @@ A developer can call `extractMetadata(url)` and get back structured Zotero items
 - Based on Zotero's internal extension code and zotero-server; translators are plain JS files with JSON metadata headers executing `detectWeb()` + `doWeb()`
 - The translator utility bundle (`utilities-translate-bundle.ts`) is ~19k lines of auto-generated CJS code — patched at build time with `eval('require')` wrappers to prevent ESM bundler from trying to resolve dead-code CJS paths
 - Translators are a git submodule (`packages/core/translators/`) pointing to Zotero's translator repo
-- Currently on `rewrite` branch — fresh executor (`translator-system-modern.ts`) replaced old broken code; 173 tests pass
+- v1 exists on npm but sandbox is incompatible with many real translators — missing ZU.* methods, Zotero.Item API gaps, calling convention mismatches
+- Currently on `rewrite` branch — fresh executor (`translator-system-modern.ts`) replaced old broken code; 173 unit/integration tests pass, but real-world translator compatibility is the open question
 - Node.js package (`packages/node`) is planned but not yet implemented
 - `ztractor-node` needs XPath support for translators that use `document.evaluate()` — linkedom parses fast but has limited XPath; xmldom can handle XPath queries
+- Zotero's translator test format is not yet understood — need to investigate how to run their tests against ztractor's sandbox
 
 ## Constraints
 
