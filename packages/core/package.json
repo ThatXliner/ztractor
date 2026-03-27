@@ -44,7 +44,8 @@
 		"build": "bun bundle-translate.ts && bun bundle-translators.ts && bunx bunup --exports -t browser --external jsdom,./xregexp-all",
 		"build:translate": "bun bundle-translate.ts",
 		"build:translators": "bun bundle-translators.ts",
-		"test": "bun test"
+		"test": "bun test",
+		"baseline": "bun scripts/baseline.ts"
 	},
 	"devDependencies": {
 		"@babel/parser": "^7.28.5",
