@@ -84,7 +84,7 @@ async function main() {
 		"utf-8",
 	);
 	// Generate output
-	const output = generateTranslateBundle(
+	let output = generateTranslateBundle(
 		[...srcFiles, ...utilFiles]
 			.toSorted(
 				(a, b) =>
@@ -95,6 +95,15 @@ async function main() {
 			.join("\n") +
 			"\n" +
 			translationBundlePatch,
+	);
+
+	// Patch require() calls that reference relative paths or optional node modules
+	// (jsdom, rdflib internals) so bundlers don't try to statically resolve them.
+	// These code paths are guarded by runtime checks (Zotero.isNode, typeof process)
+	// and never execute in browser/ESM builds.
+	output = output.replace(
+		/\brequire\(("(?:\.\/[^"]+|jsdom)")\)/g,
+		`(eval('require'))($1)`,
 	);
 
 	writeFileSync(outputFile, output, "utf-8");
@@ -119,6 +128,21 @@ ${utilities}
 
 // ===== Re-export Zotero for convenience =====
 export { Zotero, ZOTERO_CONFIG };
+
+// ===== Named exports for individual utilities =====
+const _mockTranslate = { _sandboxManager: null, _debug: () => {} };
+const _translateUtils = new Zotero.Utilities.Translate(_mockTranslate);
+
+export const processDocuments = _translateUtils.processDocuments.bind(_translateUtils);
+export const requestDocument = _translateUtils.requestDocument.bind(_translateUtils);
+export const request = _translateUtils.request.bind(_translateUtils);
+export const requestText = _translateUtils.requestText.bind(_translateUtils);
+export const requestJSON = _translateUtils.requestJSON.bind(_translateUtils);
+export const getItemArray = _translateUtils.getItemArray.bind(_translateUtils);
+export const getVersion = _translateUtils.getVersion.bind(_translateUtils);
+export const doGet = _translateUtils.doGet.bind(_translateUtils);
+export const doPost = _translateUtils.doPost.bind(_translateUtils);
+export const ZU = Zotero.Utilities;
 `;
 }
 

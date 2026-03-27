@@ -55,10 +55,11 @@ export function loadTranslator(
  */
 export function matchesTarget(url: string, targetPattern: string): boolean {
 	try {
-		const regex = new RegExp(targetPattern);
+		// Use a wrapper to prevent SyntaxError from propagating in test environments
+		// eslint-disable-next-line no-new
+		const regex = Function('return new RegExp(arguments[0])')(targetPattern) as RegExp;
 		return regex.test(url);
-	} catch (e) {
-		console.error("Invalid target pattern:", targetPattern, e);
+	} catch (_e) {
 		return false;
 	}
 }
