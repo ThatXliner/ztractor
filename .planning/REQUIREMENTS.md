@@ -24,7 +24,7 @@
 ### Verification
 
 - [ ] **VERIFY-01**: A representative set of real-world translators (academic publishers, Wikipedia, arXiv, DOI, news sites) pass their Zotero tests when run against ztractor's sandbox
-- [ ] **VERIFY-02**: All existing 173 ztractor unit/integration tests continue to pass after sandbox changes
+- [x] **VERIFY-02**: All existing 173 ztractor unit/integration tests continue to pass after sandbox changes
 
 ### Node.js Package
 
@@ -76,7 +76,7 @@
 | SAND-06 | Phase 3 | Complete |
 | SAND-07 | Phase 3 | Complete |
 | VERIFY-01 | Phase 4 | Pending |
-| VERIFY-02 | Phase 4 | Pending |
+| VERIFY-02 | Phase 4 | Complete |
 | NODE-01 | Phase 5 | Pending |
 | NODE-02 | Phase 5 | Pending |
 | NODE-03 | Phase 5 | Pending |
