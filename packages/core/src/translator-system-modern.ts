@@ -222,14 +222,28 @@ export class ZoteroItem {
  * which contains all the helper functions translators need.
  */
 function createZoteroUtilities() {
-  // Create a minimal translate object to satisfy Zotero.Utilities.Translate constructor
+  // Create a minimal translate object to satisfy Zotero.Utilities.Translate constructor.
+  // resolveURL resolves relative URLs against currentUrl — updated per translation call.
+  let currentUrl = '';
   const mockTranslate = {
     _sandboxManager: null,
     _debug: (msg: string) => {
       if (typeof process !== 'undefined' && process.env?.DEBUG_TRANSLATORS) {
         console.log('[ZU]', msg);
       }
-    }
+    },
+    resolveURL: (relUrl: string) => {
+      try {
+        return new URL(relUrl, currentUrl || undefined).href;
+      } catch (_e) {
+        return relUrl;
+      }
+    },
+    requestHeaders: {
+      'User-Agent': 'Mozilla/5.0 (compatible; Ztractor/1.0; +https://github.com/ThatXliner/ztractor)',
+    },
+    cookieSandbox: null,
+    setCurrentUrl: (u: string) => { currentUrl = u; },
   };
 
   // Create the utilities instance (has HTTP methods like request, doGet, etc.)
@@ -342,6 +356,35 @@ function createZoteroUtilities() {
 export const ZoteroUtilities = createZoteroUtilities();
 
 /**
+ * Wrap a DOMParser class to ensure parseFromString always produces a valid document.
+ * Some DOMParser implementations (e.g. linkedom) fail on bare text fragments like "Zotero".
+ * This wrapper prepends a DOCTYPE/html skeleton when the input lacks a top-level element.
+ */
+function makeSafeDOMParser(RawParser: any): any {
+  if (!RawParser) return RawParser;
+  class SafeDOMParser {
+    private _inner: any;
+    constructor() {
+      this._inner = new RawParser();
+    }
+    parseFromString(html: string, mimeType: string) {
+      // For XML MIME types, delegate directly — wrapping would break namespace handling
+      if (mimeType && mimeType !== 'text/html') {
+        return this._inner.parseFromString(html, mimeType);
+      }
+      // Ensure the HTML has a root element; bare text fails in some parsers
+      const trimmed = (html ?? '').trimStart();
+      const hasRoot = /^<!DOCTYPE\b/i.test(trimmed) || /^<html\b/i.test(trimmed);
+      const input = hasRoot
+        ? html
+        : `<!DOCTYPE html><html><head></head><body>${html}</body></html>`;
+      return this._inner.parseFromString(input, mimeType);
+    }
+  }
+  return SafeDOMParser;
+}
+
+/**
  * XPath result type constants
  */
 const XPathResult = {
@@ -378,6 +421,23 @@ function attr(docOrElem: Element | Document | null, selectorOrAttr: string, attr
       elem = (docOrElem as Element).querySelectorAll(selector).item(index) as Element | null;
     } else {
       elem = (docOrElem as Element).querySelector(selector);
+      // Fallback for XML namespace-prefixed elements (e.g. arxiv:primary_category):
+      // if querySelector fails and the selector is a simple element name (no CSS syntax),
+      // search descendants by tagName suffix (e.g. "arxiv:primary_category" ends with ":primary_category").
+      // Guard querySelectorAll availability since mock documents in tests may not provide it.
+      if (!elem && /^[a-z_][\w-]*$/i.test(selector) && typeof (docOrElem as any).querySelectorAll === 'function') {
+        const suffixLower = (':' + selector).toLowerCase();
+        const localLower = selector.toLowerCase();
+        const all = (docOrElem as Element).querySelectorAll('*');
+        for (let i = 0; i < all.length; i++) {
+          const t = all[i];
+          const tn = (t.tagName ?? '').toLowerCase();
+          if (tn === localLower || tn.endsWith(suffixLower)) {
+            elem = t;
+            break;
+          }
+        }
+      }
     }
   } else {
     // 2-arg form: attr(element, attrName)
@@ -527,7 +587,7 @@ export class TranslatorExecutor {
         sandbox.ZU.requestJSON?.bind(sandbox.ZU),
         sandbox.ZU.requestDocument?.bind(sandbox.ZU),
         XPathResult,
-        dependencies?.DOMParser ?? (globalThis as any).DOMParser
+        makeSafeDOMParser(dependencies?.DOMParser ?? (globalThis as any).DOMParser)
       );
 
       return result;
@@ -550,7 +610,33 @@ export class TranslatorExecutor {
       const pendingWork: Promise<any>[] = [];
 
       try {
+        const translatorLabel = translator.metadata.label;
         const sandbox = this.createSandbox(doc, url, (item) => {
+          // Mirror Zotero's behavior: auto-set libraryCatalog from translator label
+          // if not already set and item type is not webpage (translate.js:12236)
+          if (item.libraryCatalog === undefined && item.itemType !== 'webpage') {
+            (item as any).libraryCatalog = translatorLabel;
+          }
+
+          // Apply Zotero type-field aliasing (zoteroTypeSchemaData.js preprint: { 124: 8, 125: 60, 122: 108 })
+          // For preprint type, publisher (base field 8) is exposed as repository (type field 124).
+          // Translators set publisher; Zotero's test serializer emits the type-specific field name.
+          if (item.itemType === 'preprint') {
+            if ((item as any).publisher !== undefined && (item as any).repository === undefined) {
+              (item as any).repository = (item as any).publisher;
+              delete (item as any).publisher;
+            }
+          }
+
+          // Mirror Zotero's web _itemDone: auto-generate shortTitle from title with a colon
+          // (translate.js:12265-12318) when shortTitle is not already set
+          if ((item as any).shortTitle === undefined && item.title) {
+            const colonIdx = item.title.indexOf(':');
+            if (colonIdx !== -1) {
+              (item as any).shortTitle = item.title.substring(0, colonIdx);
+            }
+          }
+
           items.push(item);
         }, pendingWork);
 
@@ -598,7 +684,7 @@ export class TranslatorExecutor {
           sandbox.ZU.requestJSON?.bind(sandbox.ZU),
           sandbox.ZU.requestDocument?.bind(sandbox.ZU),
           XPathResult,
-          dependencies?.DOMParser ?? (globalThis as any).DOMParser
+          makeSafeDOMParser(dependencies?.DOMParser ?? (globalThis as any).DOMParser)
         );
 
         // Drain all pending work (async HTTP sub-requests, processDocuments, etc.)
@@ -642,6 +728,12 @@ export class TranslatorExecutor {
         }
       }
     };
+
+    // Update the shared ZU's mock translate with the current page URL so that
+    // resolveURL() can resolve relative URLs (e.g. reddit's JSON API path)
+    if (typeof (ZoteroUtilities as any)._translate?.setCurrentUrl === 'function') {
+      (ZoteroUtilities as any)._translate.setCurrentUrl(url);
+    }
 
     // Wrap ZU to resolve relative URLs
     // Copy both own and prototype methods to ensure request*, doGet, doPost are accessible
@@ -741,14 +833,19 @@ export class TranslatorExecutor {
       parentTranslator: null,
 
       /**
-       * Select items for 'multiple' type
+       * Select items for 'multiple' type.
+       * Supports both callback style (Zotero 5) and Promise style (Zotero 6+, await Z.selectItems(...))
        */
       selectItems(
         itemList: Record<string, string>,
-        callback: (selected: Record<string, string> | null) => void
-      ) {
+        callback?: (selected: Record<string, string> | null) => void
+      ): Promise<Record<string, string> | null> | void {
         // Auto-select all items (in real browser extension, this shows a dialog)
-        callback(itemList);
+        if (typeof callback === 'function') {
+          callback(itemList);
+        } else {
+          return Promise.resolve(itemList);
+        }
       },
 
       /**
@@ -852,7 +949,7 @@ export class TranslatorExecutor {
             embeddedSandbox.ZU.requestJSON?.bind(embeddedSandbox.ZU),
             embeddedSandbox.ZU.requestDocument?.bind(embeddedSandbox.ZU),
             XPathResult,
-            embeddedDeps?.DOMParser ?? (globalThis as any).DOMParser
+            makeSafeDOMParser(embeddedDeps?.DOMParser ?? (globalThis as any).DOMParser)
           );
 
           try { callback(transObj); } catch (_e) {}

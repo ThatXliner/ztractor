@@ -99,8 +99,9 @@ async function main() {
 			continue;
 		}
 
-		// Only include web translators (type 4)
-		if (metadata.translatorType === 4) {
+		// Include all web translators: type 4 (web only) and combined types like 12 (web+import)
+		// Use bitflag check so translatorType 12 (= 8|4) is included
+		if ((metadata.translatorType & 4) !== 0) {
 			const jsCode = extractCodeWithoutMetadata(code);
 			translators.push({
 				metadata,
@@ -113,7 +114,7 @@ async function main() {
 			(translatorsByType[metadata.translatorType] || 0) + 1;
 	}
 
-	console.log(`✅ Parsed ${translators.length} web translators`);
+	console.log(`✅ Parsed ${translators.length} web translators (type 4 and combined types)`);
 	console.log(`⏭️  Skipped ${skipped} files (invalid or non-web)`);
 	console.log(
 		`📏 Total translator code size: ${(totalCodeSize / 1024 / 1024).toFixed(2)} MB`,

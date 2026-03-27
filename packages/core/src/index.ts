@@ -47,11 +47,28 @@ function parseHTMLDocument(
 	const Parser: typeof DOMParser =
 		dependencies?.DOMParser ?? (globalThis as any).DOMParser;
 	const doc = new Parser().parseFromString(html, "text/html");
-	// Attach URL metadata for translators that read document.URL / location.href
+	// Attach URL metadata for translators that read document.URL / location.href / location.search
 	try {
+		const parsedURL = new URL(url);
+		const locationLike = {
+			href: url,
+			protocol: parsedURL.protocol,
+			host: parsedURL.host,
+			hostname: parsedURL.hostname,
+			port: parsedURL.port,
+			pathname: parsedURL.pathname,
+			search: parsedURL.search,
+			hash: parsedURL.hash,
+			origin: parsedURL.origin,
+			toString: () => url,
+		};
 		Object.defineProperty(doc, "URL", { value: url, configurable: true });
 		Object.defineProperty(doc, "documentURI", {
 			value: url,
+			configurable: true,
+		});
+		Object.defineProperty(doc, "location", {
+			value: locationLike,
 			configurable: true,
 		});
 	} catch (_e) {
@@ -112,7 +129,7 @@ export async function extractMetadata(
 		// Find matching translators from the registry
 		const allMetadata = await registry.getAllTranslatorMetadata();
 		const matchingMetadata = allMetadata
-			.filter((t) => t.translatorType === 4 && matchesTarget(url, t.target))
+			.filter((t) => (t.translatorType & 4) !== 0 && matchesTarget(url, t.target))
 			.sort((a, b) => a.priority - b.priority); // lower number = higher priority
 
 		if (matchingMetadata.length === 0) {
@@ -196,7 +213,7 @@ export async function findTranslators(
 ): Promise<{ id: string; label: string; target: string; priority: number }[]> {
 	const all = await registry.getAllTranslatorMetadata();
 	return all
-		.filter((t) => t.translatorType === 4 && matchesTarget(url, t.target))
+		.filter((t) => (t.translatorType & 4) !== 0 && matchesTarget(url, t.target))
 		.sort((a, b) => a.priority - b.priority)
 		.map((t) => ({
 			id: t.translatorID,
