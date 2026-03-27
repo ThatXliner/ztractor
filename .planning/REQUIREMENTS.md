@@ -65,30 +65,30 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| TEST-01 | — | Pending |
-| TEST-02 | — | Pending |
-| TEST-03 | — | Pending |
-| SAND-01 | — | Pending |
-| SAND-02 | — | Pending |
-| SAND-03 | — | Pending |
-| SAND-04 | — | Pending |
-| SAND-05 | — | Pending |
-| SAND-06 | — | Pending |
-| SAND-07 | — | Pending |
-| VERIFY-01 | — | Pending |
-| VERIFY-02 | — | Pending |
-| NODE-01 | — | Pending |
-| NODE-02 | — | Pending |
-| NODE-03 | — | Pending |
-| PUB-01 | — | Pending |
-| PUB-02 | — | Pending |
-| PUB-03 | — | Pending |
+| TEST-01 | Phase 1 | Pending |
+| TEST-02 | Phase 1 | Pending |
+| TEST-03 | Phase 1 | Pending |
+| SAND-01 | Phase 2 | Pending |
+| SAND-02 | Phase 2 | Pending |
+| SAND-05 | Phase 2 | Pending |
+| SAND-03 | Phase 3 | Pending |
+| SAND-04 | Phase 3 | Pending |
+| SAND-06 | Phase 3 | Pending |
+| SAND-07 | Phase 3 | Pending |
+| VERIFY-01 | Phase 4 | Pending |
+| VERIFY-02 | Phase 4 | Pending |
+| NODE-01 | Phase 5 | Pending |
+| NODE-02 | Phase 5 | Pending |
+| NODE-03 | Phase 5 | Pending |
+| PUB-01 | Phase 6 | Pending |
+| PUB-02 | Phase 6 | Pending |
+| PUB-03 | Phase 6 | Pending |
 
 **Coverage:**
 - v1 requirements: 18 total
-- Mapped to phases: 0 (roadmap pending)
-- Unmapped: 18 ⚠️
+- Mapped to phases: 18
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-26*
-*Last updated: 2026-03-26 after initial definition*
+*Last updated: 2026-03-26 after roadmap creation — all requirements mapped*
