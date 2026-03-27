@@ -89,6 +89,26 @@ describe('ZoteroItem', () => {
     expect(completedItem.title).toBe('Test Book');
     expect(completedItem.creators).toHaveLength(1);
   });
+
+  test('setExtra stores field:value in extra', () => {
+    const item = new ZoteroItem('article');
+    item.setExtra('DOI', '10.1/abc');
+    expect(item.extra).toBe('DOI: 10.1/abc');
+  });
+
+  test('setExtra overwrites existing field', () => {
+    const item = new ZoteroItem('article');
+    item.setExtra('DOI', '10.1/abc');
+    item.setExtra('DOI', '10.1/xyz');
+    expect(item.extra).toBe('DOI: 10.1/xyz');
+  });
+
+  test('setExtra appends new fields on separate lines', () => {
+    const item = new ZoteroItem('article');
+    item.setExtra('DOI', '10.1/abc');
+    item.setExtra('PMID', '12345');
+    expect(item.extra).toBe('DOI: 10.1/abc\nPMID: 12345');
+  });
 });
 
 describe('ZoteroUtilities', () => {
@@ -371,6 +391,100 @@ describe('TranslatorExecutor', () => {
 
     expect(items).toHaveLength(1);
     expect(items[0].title).toBe('Async Article');
+  });
+});
+
+describe('Sandbox Globals', () => {
+  test('sandbox provides Z as alias for Zotero', async () => {
+    const executor = new TranslatorExecutor();
+    const translator = {
+      metadata: { translatorID: 'z-test', label: 'Z Test', translatorType: 4, target: '', priority: 100 },
+      code: `
+        function detectWeb(doc, url) {
+          Z.debug("testing Z alias");
+          return (Z === Zotero) ? 'article' : false;
+        }
+      `,
+    };
+    const parser = new DOMParser();
+    const doc = parser.parseFromString('<html><body></body></html>', 'text/html');
+    const result = await executor.detectWeb(translator, doc, 'http://example.com');
+    expect(result).toBe('article');
+  });
+
+  test('sandbox provides innerText as global function', async () => {
+    const executor = new TranslatorExecutor();
+    const translator = {
+      metadata: { translatorID: 'it-test', label: 'InnerText Test', translatorType: 4, target: '', priority: 100 },
+      code: `
+        function doWeb(doc, url) {
+          const item = new Zotero.Item('article');
+          item.title = innerText(doc, 'h1');
+          item.complete();
+        }
+      `,
+    };
+    const parser = new DOMParser();
+    const doc = parser.parseFromString('<html><body><h1>  Hello  World  </h1></body></html>', 'text/html');
+    const items = await executor.doWeb(translator, doc, 'http://example.com');
+    expect(items).toHaveLength(1);
+    expect(items[0].title).toBe('Hello World');
+  });
+
+  test('sandbox provides bare request* globals as functions', async () => {
+    const executor = new TranslatorExecutor();
+    const translator = {
+      metadata: { translatorID: 'req-test', label: 'Request Test', translatorType: 4, target: '', priority: 100 },
+      code: `
+        function detectWeb(doc, url) {
+          const hasAll = typeof request === 'function'
+            && typeof requestText === 'function'
+            && typeof requestJSON === 'function'
+            && typeof requestDocument === 'function';
+          return hasAll ? 'article' : false;
+        }
+      `,
+    };
+    const parser = new DOMParser();
+    const doc = parser.parseFromString('<html><body></body></html>', 'text/html');
+    const result = await executor.detectWeb(translator, doc, 'http://example.com');
+    expect(result).toBe('article');
+  });
+
+  test('sandbox sets Zotero.isConnector/isServer/isBookmarklet to false', async () => {
+    const executor = new TranslatorExecutor();
+    const translator = {
+      metadata: { translatorID: 'flag-test', label: 'Flag Test', translatorType: 4, target: '', priority: 100 },
+      code: `
+        function detectWeb(doc, url) {
+          if (Zotero.isConnector !== false) return false;
+          if (Zotero.isServer !== false) return false;
+          if (Zotero.isBookmarklet !== false) return false;
+          if (Zotero.parentTranslator !== null) return false;
+          return 'article';
+        }
+      `,
+    };
+    const parser = new DOMParser();
+    const doc = parser.parseFromString('<html><body></body></html>', 'text/html');
+    const result = await executor.detectWeb(translator, doc, 'http://example.com');
+    expect(result).toBe('article');
+  });
+
+  test('sandbox provides ZU.HTTP as alias for ZU', async () => {
+    const executor = new TranslatorExecutor();
+    const translator = {
+      metadata: { translatorID: 'http-test', label: 'HTTP Test', translatorType: 4, target: '', priority: 100 },
+      code: `
+        function detectWeb(doc, url) {
+          return (typeof ZU.HTTP === 'object' && typeof ZU.HTTP.doGet === 'function') ? 'article' : false;
+        }
+      `,
+    };
+    const parser = new DOMParser();
+    const doc = parser.parseFromString('<html><body></body></html>', 'text/html');
+    const result = await executor.detectWeb(translator, doc, 'http://example.com');
+    expect(result).toBe('article');
   });
 });
 
