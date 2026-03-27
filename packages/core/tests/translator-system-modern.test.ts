@@ -610,7 +610,7 @@ describe('Advanced Flows', () => {
   });
 
   test('doGet([url1, url2], processor, done) calls processor for each URL then done()', async () => {
-    fetchSpy = spyOn(globalThis, 'fetch').mockResolvedValue(
+    fetchSpy = spyOn(globalThis, 'fetch').mockImplementation(async () =>
       new Response('data', { status: 200 })
     );
 

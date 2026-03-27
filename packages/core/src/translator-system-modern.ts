@@ -544,11 +544,12 @@ export class TranslatorExecutor {
   ): Promise<ZoteroItem[]> {
     return new Promise((resolve) => {
       const items: ZoteroItem[] = [];
+      const pendingWork: Promise<any>[] = [];
 
       try {
         const sandbox = this.createSandbox(doc, url, (item) => {
           items.push(item);
-        });
+        }, pendingWork);
 
         // Execute translator code
         const fn = new Function(
@@ -594,16 +595,20 @@ export class TranslatorExecutor {
           XPathResult
         );
 
-        // Handle async translators
-        if (result && typeof result.then === 'function') {
-          result.then(() => resolve(items)).catch((e: any) => {
-            console.error('Translator error:', e);
-            resolve(items);
-          });
-        } else {
-          // Give synchronous translators a moment for async operations
-          setTimeout(() => resolve(items), 100);
-        }
+        // Drain all pending work (async HTTP sub-requests, processDocuments, etc.)
+        const settle = async () => {
+          if (result && typeof result.then === 'function') await result;
+          let prev = -1;
+          while (pendingWork.length !== prev) {
+            prev = pendingWork.length;
+            await Promise.all(pendingWork);
+          }
+          resolve(items);
+        };
+        settle().catch((e: any) => {
+          console.error(`Error in doWeb for ${translator.metadata.label}:`, e);
+          resolve(items);
+        });
       } catch (e) {
         console.error(`Error in doWeb for ${translator.metadata.label}:`, e);
         resolve([]);
@@ -617,8 +622,11 @@ export class TranslatorExecutor {
   private createSandbox(
     doc: Document,
     url: string,
-    onItemComplete?: (item: ZoteroItem) => void
+    onItemComplete?: (item: ZoteroItem) => void,
+    pendingWork?: Promise<any>[]
   ) {
+    const dependencies = this.options.dependencies;
+
     // Create Item class with completion callback
     const ItemClass = class extends ZoteroItem {
       constructor(itemType: ItemType) {
@@ -645,14 +653,77 @@ export class TranslatorExecutor {
       }
       proto = Object.getPrototypeOf(proto);
     }
-    // Override doGet/doPost to resolve relative URLs
-    wrappedZU.doGet = async function(requestUrl: string, onDone?: (text: string) => void): Promise<string> {
-      const absoluteUrl = new URL(requestUrl, url).href;
-      return ZoteroUtilities.doGet(absoluteUrl, onDone);
+
+    // Override doGet with proper callback-based implementation and pending-work tracking
+    wrappedZU.doGet = function(
+      urls: string | string[],
+      processor?: (text: string, xmlhttp: any, url: string) => void,
+      done?: () => void,
+      _responseCharset?: string,
+      _requestHeaders?: Record<string, string>,
+      _successCodes?: number[]
+    ): void {
+      const urlList = typeof urls === 'string' ? [urls] : [...urls];
+      const p = (async () => {
+        for (const rawUrl of urlList) {
+          let fetchUrl: string;
+          try { fetchUrl = new URL(rawUrl, url).href; } catch (_e) { fetchUrl = rawUrl; }
+          const resp = await fetch(fetchUrl);
+          const responseText = await resp.text();
+          const fakeXhr = { responseText, status: resp.status, responseURL: fetchUrl, getAllResponseHeaders: () => '' };
+          if (processor) processor(responseText, fakeXhr, fetchUrl);
+        }
+        if (done) done();
+      })();
+      if (pendingWork) pendingWork.push(p);
     };
-    wrappedZU.doPost = async function(requestUrl: string, body: string, onDone?: (text: string) => void): Promise<string> {
-      const absoluteUrl = new URL(requestUrl, url).href;
-      return ZoteroUtilities.doPost(absoluteUrl, body, onDone);
+
+    // Override doPost with proper callback-based implementation and pending-work tracking
+    wrappedZU.doPost = function(
+      postUrl: string,
+      body: string,
+      onDone?: (text: string, xmlhttp: any) => void,
+      headers?: Record<string, string>,
+      _responseCharset?: string,
+      _successCodes?: number[]
+    ): void {
+      let fetchUrl: string;
+      try { fetchUrl = new URL(postUrl, url).href; } catch (_e) { fetchUrl = postUrl; }
+      const p = (async () => {
+        const resp = await fetch(fetchUrl, { method: 'POST', body, headers });
+        const responseText = await resp.text();
+        const fakeXhr = { responseText, status: resp.status, responseURL: fetchUrl, getAllResponseHeaders: () => '' };
+        if (onDone) onDone(responseText, fakeXhr);
+      })();
+      if (pendingWork) pendingWork.push(p);
+    };
+
+    // Implement processDocuments with pending-work tracking
+    wrappedZU.processDocuments = function(
+      urls: string | string[],
+      processor: (doc: Document, url: string) => void | Promise<void>,
+      _noCompleteOnError?: boolean
+    ): void {
+      const urlList = typeof urls === 'string' ? [urls] : [...urls];
+      const p = (async () => {
+        for (const rawUrl of urlList) {
+          let fetchUrl: string;
+          try { fetchUrl = new URL(rawUrl, url).href; } catch (_e) { fetchUrl = rawUrl; }
+          const resp = await fetch(fetchUrl);
+          const html = await resp.text();
+          let fetchedDoc: Document;
+          if (dependencies?.parseHTMLDocument) {
+            fetchedDoc = dependencies.parseHTMLDocument(html, fetchUrl);
+          } else {
+            const parser = new (dependencies?.DOMParser ?? globalThis.DOMParser)();
+            fetchedDoc = parser.parseFromString(html, 'text/html');
+            // Attach mock location for translators that read doc.location.href
+            try { Object.defineProperty(fetchedDoc, 'location', { value: { href: fetchUrl }, configurable: true }); } catch(_e) {}
+          }
+          await processor(fetchedDoc, fetchUrl);
+        }
+      })();
+      if (pendingWork) pendingWork.push(p);
     };
 
     const Zotero = {
@@ -689,6 +760,10 @@ export class TranslatorExecutor {
           console.log('[Translator]', message);
         }
       },
+
+      // No-op compatibility stubs
+      done() {},
+      wait() {},
     };
 
     // ZU.HTTP alias (translate.js:2143)
