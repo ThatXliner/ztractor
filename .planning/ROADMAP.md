@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Test Infrastructure** - Understand Zotero's test format and build a harness that runs translator tests against ztractor's sandbox (completed 2026-03-27)
 - [x] **Phase 2: Sandbox Core API** - Implement the Zotero.Item and ZU base API surface that translators depend on for detection and basic extraction (completed 2026-03-27)
 - [x] **Phase 3: Sandbox Advanced Flows** - Implement multi-page fetch, HTTP sub-requests, item selection, and translator-to-translator delegation (completed 2026-03-27)
-- [ ] **Phase 4: Verification** - Confirm real-world translators pass and existing tests hold
+- [x] **Phase 4: Verification** - Confirm real-world translators pass and existing tests hold (completed 2026-03-27)
 - [ ] **Phase 5: Node.js Package** - Ship ztractor-node with linkedom + XPath pre-wired and matching core API
 - [ ] **Phase 6: Publish** - Publish both packages to npm with correct metadata and READMEs
 
@@ -70,10 +70,10 @@ Plans:
   1. Translators for academic publishers (e.g., arXiv, DOI, Wikipedia) pass their Zotero test cases when run via the Phase 1 harness
   2. A news site translator and at least one social/general translator also pass
   3. All 173 existing ztractor unit and integration tests continue to pass
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 Plans:
 - [x] 04-01-PLAN.md — Fix three sandbox bugs: unhandled rejection in getTranslatorObject, missing DOMParser in Function context, dependencies spread override
-- [ ] 04-02-PLAN.md — Add TRANSLATOR_COMPAT-gated live tests for Wikipedia, arXiv, reddit, and a news site
+- [x] 04-02-PLAN.md — Add TRANSLATOR_COMPAT-gated live tests for Wikipedia, arXiv, reddit, and a news site
 
 ### Phase 5: Node.js Package
 **Goal**: Node.js users can install ztractor-node and extract metadata without any manual dependency injection or DOM setup
@@ -106,6 +106,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 1. Test Infrastructure | 2/2 | Complete   | 2026-03-27 |
 | 2. Sandbox Core API | 1/1 | Complete   | 2026-03-27 |
 | 3. Sandbox Advanced Flows | 2/2 | Complete   | 2026-03-27 |
-| 4. Verification | 1/2 | In Progress|  |
+| 4. Verification | 2/2 | Complete   | 2026-03-27 |
 | 5. Node.js Package | 0/TBD | Not started | - |
 | 6. Publish | 0/TBD | Not started | - |
