@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Completed 02-01-PLAN.md
-last_updated: "2026-03-27T07:13:05.684Z"
+status: executing
+stopped_at: Completed 03-01-PLAN.md
+last_updated: "2026-03-27T07:49:04.103Z"
 last_activity: 2026-03-27
 progress:
   total_phases: 6
   completed_phases: 2
-  total_plans: 3
-  completed_plans: 3
+  total_plans: 5
+  completed_plans: 4
   percent: 0
 ---
 
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-26)
 
 **Core value:** The sandbox is compatible enough that real Zotero translators pass Zotero's own test suite — meaning any translator that works in Zotero works in ztractor.
-**Current focus:** Phase 02 — sandbox-core-api
+**Current focus:** Phase 03 — sandbox-advanced-flows
 
 ## Current Position
 
-Phase: 3
-Plan: Not started
-Status: Phase complete — ready for verification
+Phase: 03 (sandbox-advanced-flows) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
 Last activity: 2026-03-27
 
 Progress: [░░░░░░░░░░] 0%
@@ -55,6 +55,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P01 | 7 | 2 tasks | 6 files |
 | Phase 01 P02 | 3 | 2 tasks | 6 files |
 | Phase 02 P01 | 184s | 2 tasks | 2 files |
+| Phase 03-sandbox-advanced-flows P01 | 3min | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -71,6 +72,8 @@ Recent decisions affecting current work:
 - [Phase 01]: TRANSLATOR_COMPAT guard on live test: keeps bun test fast by default, avoids flaky CI from network conditions
 - [Phase 01]: node:fs allowed in report.ts/scripts/ since only used from test/script context, not imported into browser-targeted src/
 - [Phase 02]: Copy prototype methods to wrappedZU (not just spread) to expose request/requestText/requestJSON/requestDocument from ZoteroUtilities.Translate prototype
+- [Phase 03-sandbox-advanced-flows]: pendingWork array (not counter) allows drain loop to catch promises added by nested callbacks (selectItems -> processDocuments)
+- [Phase 03-sandbox-advanced-flows]: doGet/doPost use callback pattern (not Promise return) to match Zotero's API surface for real translator compatibility
 
 ### Pending Todos
 
@@ -84,6 +87,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-27T06:51:05.296Z
-Stopped at: Completed 02-01-PLAN.md
+Last session: 2026-03-27T07:49:04.101Z
+Stopped at: Completed 03-01-PLAN.md
 Resume file: None

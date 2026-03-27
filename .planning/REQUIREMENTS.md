@@ -13,12 +13,12 @@
 
 ### Sandbox Compatibility
 
-- [ ] **SAND-01**: `Zotero.Item` implements the full field/method API that translators use (all item types, all fields, `complete()`, `addTag()`, `addCreator()`, etc.)
-- [ ] **SAND-02**: `ZU` (ZoteroUtilities) implements all methods translators call — text cleaning, ISBN/ISSN/DOI, HTTP helpers, DOM utilities
-- [ ] **SAND-03**: `ZU.processDocuments()` works correctly — translators use this to fetch and process additional pages
-- [ ] **SAND-04**: `ZU.doGet()` / `ZU.doPost()` work correctly — translators use these for HTTP sub-requests
-- [ ] **SAND-05**: Translator calling conventions match what Zotero's runtime provides — `detectWeb()` and `doWeb()` receive the correct arguments and `this` context
-- [ ] **SAND-06**: Multi-item selection flow works — translators that call `Zotero.selectItems()` get a functioning callback
+- [x] **SAND-01**: `Zotero.Item` implements the full field/method API that translators use (all item types, all fields, `complete()`, `addTag()`, `addCreator()`, etc.)
+- [x] **SAND-02**: `ZU` (ZoteroUtilities) implements all methods translators call — text cleaning, ISBN/ISSN/DOI, HTTP helpers, DOM utilities
+- [x] **SAND-03**: `ZU.processDocuments()` works correctly — translators use this to fetch and process additional pages
+- [x] **SAND-04**: `ZU.doGet()` / `ZU.doPost()` work correctly — translators use these for HTTP sub-requests
+- [x] **SAND-05**: Translator calling conventions match what Zotero's runtime provides — `detectWeb()` and `doWeb()` receive the correct arguments and `this` context
+- [x] **SAND-06**: Multi-item selection flow works — translators that call `Zotero.selectItems()` get a functioning callback
 - [ ] **SAND-07**: Translator-to-translator calls work — translators that delegate to other translators (via `Zotero.loadTranslator`) function correctly
 
 ### Verification
@@ -68,12 +68,12 @@
 | TEST-01 | Phase 1 | Complete |
 | TEST-02 | Phase 1 | Complete |
 | TEST-03 | Phase 1 | Complete |
-| SAND-01 | Phase 2 | Pending |
-| SAND-02 | Phase 2 | Pending |
-| SAND-05 | Phase 2 | Pending |
-| SAND-03 | Phase 3 | Pending |
-| SAND-04 | Phase 3 | Pending |
-| SAND-06 | Phase 3 | Pending |
+| SAND-01 | Phase 2 | Complete |
+| SAND-02 | Phase 2 | Complete |
+| SAND-05 | Phase 2 | Complete |
+| SAND-03 | Phase 3 | Complete |
+| SAND-04 | Phase 3 | Complete |
+| SAND-06 | Phase 3 | Complete |
 | SAND-07 | Phase 3 | Pending |
 | VERIFY-01 | Phase 4 | Pending |
 | VERIFY-02 | Phase 4 | Pending |
