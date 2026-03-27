@@ -46,7 +46,7 @@ Plans:
   4. `detectWeb(doc, url)` and `doWeb(doc, url)` receive the correct arguments and `this` context that Zotero's runtime provides
 **Plans:** 1 plan
 Plans:
-- [ ] 02-01-PLAN.md — Sandbox globals (Z, innerText, request*), ZoteroItem.setExtra(), Zotero flags, ZU.HTTP alias
+- [x] 02-01-PLAN.md — Sandbox globals (Z, innerText, request*), ZoteroItem.setExtra(), Zotero flags, ZU.HTTP alias
 
 ### Phase 3: Sandbox Advanced Flows
 **Goal**: Translators that fetch additional pages, make HTTP sub-requests, present item selection, or delegate to other translators work end-to-end
