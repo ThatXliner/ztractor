@@ -41,7 +41,7 @@ Plans:
 **Requirements**: SAND-01, SAND-02, SAND-05
 **Success Criteria** (what must be TRUE):
   1. Translators can create items of any supported type and set any standard field without an error
-  2. `item.complete()`, `item.addTag()`, and `item.addCreator()` work and produce correctly structured output
+  2. `item.complete()` and `item.setExtra()` work and produce correctly structured output (note: translators push to `item.creators` and `item.tags` arrays directly — they do not call `addTag()`/`addCreator()` methods)
   3. All ZU text-cleaning, ISBN/ISSN/DOI, and DOM utility methods that translators call are implemented
   4. `detectWeb(doc, url)` and `doWeb(doc, url)` receive the correct arguments and `this` context that Zotero's runtime provides
 **Plans:** 1 plan
