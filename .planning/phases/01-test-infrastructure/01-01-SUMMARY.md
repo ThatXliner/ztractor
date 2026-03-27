@@ -107,6 +107,17 @@ None - no external service configuration required.
 - 15 new tests pass alongside all 173 existing tests (188 total, 0 failures)
 - Plan 02 can build the run-test.ts and report.ts modules on top of this foundation
 
+## Self-Check: PASSED
+
+- FOUND: packages/core/tests/harness/types.ts
+- FOUND: packages/core/tests/harness/parse-test-cases.ts
+- FOUND: packages/core/tests/harness/parse-test-cases.test.ts
+- FOUND: packages/core/tests/harness/normalize-item.ts
+- FOUND: packages/core/tests/harness/compare-items.ts
+- FOUND: packages/core/tests/harness/normalize-item.test.ts
+- FOUND commit: 02442c3
+- FOUND commit: 3e67fde
+
 ---
 *Phase: 01-test-infrastructure*
 *Completed: 2026-03-27*
