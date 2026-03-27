@@ -44,7 +44,9 @@ Plans:
   2. `item.complete()`, `item.addTag()`, and `item.addCreator()` work and produce correctly structured output
   3. All ZU text-cleaning, ISBN/ISSN/DOI, and DOM utility methods that translators call are implemented
   4. `detectWeb(doc, url)` and `doWeb(doc, url)` receive the correct arguments and `this` context that Zotero's runtime provides
-**Plans**: TBD
+**Plans:** 1 plan
+Plans:
+- [ ] 02-01-PLAN.md — Sandbox globals (Z, innerText, request*), ZoteroItem.setExtra(), Zotero flags, ZU.HTTP alias
 
 ### Phase 3: Sandbox Advanced Flows
 **Goal**: Translators that fetch additional pages, make HTTP sub-requests, present item selection, or delegate to other translators work end-to-end
@@ -96,7 +98,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Test Infrastructure | 2/2 | Complete   | 2026-03-27 |
-| 2. Sandbox Core API | 0/TBD | Not started | - |
+| 2. Sandbox Core API | 0/1 | In progress | - |
 | 3. Sandbox Advanced Flows | 0/TBD | Not started | - |
 | 4. Verification | 0/TBD | Not started | - |
 | 5. Node.js Package | 0/TBD | Not started | - |
