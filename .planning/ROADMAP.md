@@ -30,9 +30,9 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. A test harness exists that takes a translator's test cases and runs them against ztractor's sandbox
   3. A baseline report exists showing which translators pass and fail before any sandbox changes
   4. The harness is runnable with a single command: `bun test` or equivalent
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 Plans:
-- [ ] 01-01-PLAN.md — Harness utilities: test case parser, item normalizer, and item comparator with unit tests
+- [x] 01-01-PLAN.md — Harness utilities: test case parser, item normalizer, and item comparator with unit tests
 - [ ] 01-02-PLAN.md — Harness runner, zotero-compat smoke test, and baseline report script
 
 ### Phase 2: Sandbox Core API
@@ -95,7 +95,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Test Infrastructure | 0/2 | Planning complete | - |
+| 1. Test Infrastructure | 1/2 | In Progress|  |
 | 2. Sandbox Core API | 0/TBD | Not started | - |
 | 3. Sandbox Advanced Flows | 0/TBD | Not started | - |
 | 4. Verification | 0/TBD | Not started | - |
