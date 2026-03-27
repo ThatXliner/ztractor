@@ -198,6 +198,21 @@ export class ZoteroItem {
   _setComplete(callback: (item: ZoteroItem) => void): void {
     this.onComplete = callback;
   }
+
+  /**
+   * Set a field in the extra property (Zotero 6+ API)
+   * Source: translate.js:2263-2274
+   */
+  setExtra(field: string, value: string): void {
+    const lines = String(this.extra || "").split("\n").filter((l: string) => l !== "");
+    const existingIndex = lines.findIndex((line: string) => line.startsWith(field + ": "));
+    if (existingIndex !== -1) {
+      lines[existingIndex] = `${field}: ${value}`;
+    } else {
+      lines.push(`${field}: ${value}`);
+    }
+    this.extra = lines.join("\n");
+  }
 }
 
 /**
@@ -401,6 +416,31 @@ function text(node: Element | Document | null, selector?: string, index?: number
   return content.replace(/\s+/g, ' ').trim() || null;
 }
 
+/**
+ * innerText(docOrElem, selector?, index?) — returns innerText with whitespace normalization
+ * Mirrors Zotero's _innerText (translate.js:2199)
+ */
+function innerText(
+  node: Element | Document | null,
+  selector?: string,
+  index?: number
+): string | null {
+  if (!node) return null;
+  let elem: Element | null;
+  if (selector) {
+    if (typeof index === 'number') {
+      elem = (node as Element).querySelectorAll(selector).item(index) as Element | null;
+    } else {
+      elem = (node as Element).querySelector(selector);
+    }
+  } else {
+    elem = node as Element;
+  }
+  if (!elem) return null;
+  const content = (elem as any).innerText ?? elem.textContent ?? '';
+  return content.replace(/\s+/g, ' ').trim() || null;
+}
+
 // ============================================================================
 // TRANSLATOR EXECUTOR
 // ============================================================================
@@ -452,8 +492,14 @@ export class TranslatorExecutor {
         'url',
         'Zotero',
         'ZU',
+        'Z',
         'attr',
         'text',
+        'innerText',
+        'request',
+        'requestText',
+        'requestJSON',
+        'requestDocument',
         'XPathResult',
         `
           ${translator.code}
@@ -470,8 +516,14 @@ export class TranslatorExecutor {
         url,
         sandbox.Zotero,
         sandbox.ZU,
+        sandbox.Zotero,  // Z = Zotero
         attr,
         text,
+        innerText,
+        sandbox.ZU.request?.bind(sandbox.ZU),
+        sandbox.ZU.requestText?.bind(sandbox.ZU),
+        sandbox.ZU.requestJSON?.bind(sandbox.ZU),
+        sandbox.ZU.requestDocument?.bind(sandbox.ZU),
         XPathResult
       );
 
@@ -504,8 +556,14 @@ export class TranslatorExecutor {
           'url',
           'Zotero',
           'ZU',
+          'Z',
           'attr',
           'text',
+          'innerText',
+          'request',
+          'requestText',
+          'requestJSON',
+          'requestDocument',
           'XPathResult',
           `
             ${translator.code}
@@ -525,8 +583,14 @@ export class TranslatorExecutor {
           url,
           sandbox.Zotero,
           sandbox.ZU,
+          sandbox.Zotero,  // Z = Zotero
           attr,
           text,
+          innerText,
+          sandbox.ZU.request?.bind(sandbox.ZU),
+          sandbox.ZU.requestText?.bind(sandbox.ZU),
+          sandbox.ZU.requestJSON?.bind(sandbox.ZU),
+          sandbox.ZU.requestDocument?.bind(sandbox.ZU),
           XPathResult
         );
 
@@ -566,20 +630,38 @@ export class TranslatorExecutor {
     };
 
     // Wrap ZU to resolve relative URLs
-    const wrappedZU = {
-      ...ZoteroUtilities,
-      async doGet(requestUrl: string, onDone?: (text: string) => void): Promise<string> {
-        const absoluteUrl = new URL(requestUrl, url).href;
-        return ZoteroUtilities.doGet(absoluteUrl, onDone);
-      },
-      async doPost(requestUrl: string, body: string, onDone?: (text: string) => void): Promise<string> {
-        const absoluteUrl = new URL(requestUrl, url).href;
-        return ZoteroUtilities.doPost(absoluteUrl, body, onDone);
-      },
+    // Copy both own and prototype methods to ensure request*, doGet, doPost are accessible
+    const wrappedZU: Record<string, any> = { ...ZoteroUtilities };
+    // Copy prototype methods not already on the object (e.g. request, requestText, requestJSON, requestDocument)
+    let proto = Object.getPrototypeOf(ZoteroUtilities);
+    while (proto && proto !== Object.prototype) {
+      for (const key of Object.getOwnPropertyNames(proto)) {
+        if (key !== 'constructor' && !(key in wrappedZU)) {
+          const val = (ZoteroUtilities as any)[key];
+          if (typeof val === 'function') {
+            wrappedZU[key] = val.bind(ZoteroUtilities);
+          }
+        }
+      }
+      proto = Object.getPrototypeOf(proto);
+    }
+    // Override doGet/doPost to resolve relative URLs
+    wrappedZU.doGet = async function(requestUrl: string, onDone?: (text: string) => void): Promise<string> {
+      const absoluteUrl = new URL(requestUrl, url).href;
+      return ZoteroUtilities.doGet(absoluteUrl, onDone);
+    };
+    wrappedZU.doPost = async function(requestUrl: string, body: string, onDone?: (text: string) => void): Promise<string> {
+      const absoluteUrl = new URL(requestUrl, url).href;
+      return ZoteroUtilities.doPost(absoluteUrl, body, onDone);
     };
 
     const Zotero = {
       Item: ItemClass,
+      Utilities: wrappedZU,
+      isConnector: false,
+      isServer: false,
+      isBookmarklet: false,
+      parentTranslator: null,
 
       /**
        * Select items for 'multiple' type
@@ -608,6 +690,9 @@ export class TranslatorExecutor {
         }
       },
     };
+
+    // ZU.HTTP alias (translate.js:2143)
+    (wrappedZU as any).HTTP = wrappedZU;
 
     return {
       Zotero,
@@ -707,4 +792,4 @@ export class TranslatorExecutor {
 // EXPORTS
 // ============================================================================
 
-export { attr, text, ZoteroUtilities as ZU, XPathResult };
+export { attr, text, innerText, ZoteroUtilities as ZU, XPathResult };
