@@ -1,4 +1,4 @@
-import { describe, test, expect } from 'bun:test';
+import { describe, test, expect, spyOn, afterEach } from 'bun:test';
 import {
   SandboxManager,
   TranslatorExecutor,
@@ -485,6 +485,230 @@ describe('Sandbox Globals', () => {
     const doc = parser.parseFromString('<html><body></body></html>', 'text/html');
     const result = await executor.detectWeb(translator, doc, 'http://example.com');
     expect(result).toBe('article');
+  });
+});
+
+function makeTranslator(code: string) {
+  return {
+    metadata: { label: 'test', translatorID: 'test-id', target: '', priority: 100, translatorType: 4, lastUpdated: '' },
+    code,
+  };
+}
+
+describe('Advanced Flows', () => {
+  let fetchSpy: ReturnType<typeof spyOn> | null = null;
+
+  afterEach(() => {
+    if (fetchSpy) {
+      fetchSpy.mockRestore();
+      fetchSpy = null;
+    }
+  });
+
+  test('doWeb collects items from async processDocuments callback', async () => {
+    fetchSpy = spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('<html><head><title>Page2</title></head><body></body></html>', {
+        status: 200,
+        headers: { 'Content-Type': 'text/html' },
+      })
+    );
+
+    const executor = new TranslatorExecutor();
+    const translator = makeTranslator(`
+      async function doWeb(doc, url) {
+        await ZU.processDocuments('http://example.com/page2', function(doc2, url2) {
+          var item = new Zotero.Item('journalArticle');
+          item.title = doc2.querySelector('title')?.textContent || 'fetched';
+          item.url = url2;
+          item.complete();
+        });
+      }
+    `);
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString('<html><body></body></html>', 'text/html');
+    const items = await executor.doWeb(translator, doc, 'http://example.com');
+
+    expect(items).toHaveLength(1);
+    expect(items[0].title).toBe('Page2');
+    expect(items[0].url).toBe('http://example.com/page2');
+  });
+
+  test('processDocuments resolves relative URLs against page URL', async () => {
+    let fetchedUrl = '';
+    fetchSpy = spyOn(globalThis, 'fetch').mockImplementation(async (input: any) => {
+      fetchedUrl = typeof input === 'string' ? input : input.toString();
+      return new Response('<html><body></body></html>', { status: 200 });
+    });
+
+    const executor = new TranslatorExecutor();
+    const translator = makeTranslator(`
+      async function doWeb(doc, url) {
+        await ZU.processDocuments('/relative/path', function(doc2) {
+          var item = new Zotero.Item('journalArticle');
+          item.title = 'resolved';
+          item.complete();
+        });
+      }
+    `);
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString('<html><body></body></html>', 'text/html');
+    await executor.doWeb(translator, doc, 'http://example.com/article');
+
+    expect(fetchedUrl).toBe('http://example.com/relative/path');
+  });
+
+  test('processDocuments passes (doc, url) to processor where doc has location set', async () => {
+    fetchSpy = spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('<html><body><p>content</p></body></html>', { status: 200 })
+    );
+
+    const executor = new TranslatorExecutor();
+    const translator = makeTranslator(`
+      async function doWeb(doc, url) {
+        await ZU.processDocuments('http://example.com/detail', function(doc2, url2) {
+          var item = new Zotero.Item('journalArticle');
+          item.title = url2;
+          item.complete();
+        });
+      }
+    `);
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString('<html><body></body></html>', 'text/html');
+    const items = await executor.doWeb(translator, doc, 'http://example.com');
+
+    expect(items).toHaveLength(1);
+    expect(items[0].title).toBe('http://example.com/detail');
+  });
+
+  test('doGet(url, processor) calls processor(text, fakeXhr, url) with correct shape', async () => {
+    fetchSpy = spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('response body', { status: 200 })
+    );
+
+    const executor = new TranslatorExecutor();
+    const translator = makeTranslator(`
+      function doWeb(doc, url) {
+        ZU.doGet('http://example.com/data', function(text, xhr, reqUrl) {
+          var item = new Zotero.Item('journalArticle');
+          item.title = text;
+          item.extra = xhr.status + ':' + xhr.responseURL;
+          item.complete();
+        });
+      }
+    `);
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString('<html><body></body></html>', 'text/html');
+    const items = await executor.doWeb(translator, doc, 'http://example.com');
+
+    expect(items).toHaveLength(1);
+    expect(items[0].title).toBe('response body');
+    expect(items[0].extra).toBe('200:http://example.com/data');
+  });
+
+  test('doGet([url1, url2], processor, done) calls processor for each URL then done()', async () => {
+    fetchSpy = spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('data', { status: 200 })
+    );
+
+    const executor = new TranslatorExecutor();
+    const translator = makeTranslator(`
+      function doWeb(doc, url) {
+        var count = 0;
+        ZU.doGet(['http://a.com', 'http://b.com'], function(text) {
+          count++;
+          var item = new Zotero.Item('journalArticle');
+          item.title = 'item' + count;
+          item.complete();
+        }, function() {
+          // done callback — no-op
+        });
+      }
+    `);
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString('<html><body></body></html>', 'text/html');
+    const items = await executor.doWeb(translator, doc, 'http://example.com');
+
+    expect(items).toHaveLength(2);
+  });
+
+  test('doPost(url, body, onDone) sends POST and calls onDone(text, fakeXhr)', async () => {
+    fetchSpy = spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('post response', { status: 201 })
+    );
+
+    const executor = new TranslatorExecutor();
+    const translator = makeTranslator(`
+      function doWeb(doc, url) {
+        ZU.doPost('http://example.com/api', 'key=value', function(text, xhr) {
+          var item = new Zotero.Item('journalArticle');
+          item.title = text;
+          item.extra = '' + xhr.status;
+          item.complete();
+        });
+      }
+    `);
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString('<html><body></body></html>', 'text/html');
+    const items = await executor.doWeb(translator, doc, 'http://example.com');
+
+    expect(items).toHaveLength(1);
+    expect(items[0].title).toBe('post response');
+    expect(items[0].extra).toBe('201');
+  });
+
+  test('selectItems callback that triggers processDocuments collects all items', async () => {
+    fetchSpy = spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('<html><body></body></html>', { status: 200 })
+    );
+
+    const executor = new TranslatorExecutor();
+    const translator = makeTranslator(`
+      async function doWeb(doc, url) {
+        Zotero.selectItems({a: 'Item A', b: 'Item B'}, function(selected) {
+          ZU.processDocuments('http://example.com/detail', function(doc2) {
+            for (var key in selected) {
+              var item = new Zotero.Item('journalArticle');
+              item.title = selected[key];
+              item.complete();
+            }
+          });
+        });
+      }
+    `);
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString('<html><body></body></html>', 'text/html');
+    const items = await executor.doWeb(translator, doc, 'http://example.com');
+
+    expect(items).toHaveLength(2);
+    const titles = items.map(i => i.title).sort();
+    expect(titles).toEqual(['Item A', 'Item B']);
+  });
+
+  test('Zotero.done() and Zotero.wait() exist as no-op functions', async () => {
+    const executor = new TranslatorExecutor();
+    const translator = makeTranslator(`
+      function doWeb(doc, url) {
+        Zotero.done();
+        Zotero.wait();
+        var item = new Zotero.Item('journalArticle');
+        item.title = 'noop-ok';
+        item.complete();
+      }
+    `);
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString('<html><body></body></html>', 'text/html');
+    const items = await executor.doWeb(translator, doc, 'http://example.com');
+
+    expect(items).toHaveLength(1);
+    expect(items[0].title).toBe('noop-ok');
   });
 });
 
