@@ -8,8 +8,8 @@
 ### Translator Test Infrastructure
 
 - [x] **TEST-01**: Understand Zotero's translator test format — identify how translator tests are structured, what inputs/outputs they expect, and whether they can run outside Zotero
-- [ ] **TEST-02**: Implement a test harness that runs Zotero translator tests against ztractor's sandbox
-- [ ] **TEST-03**: Baseline measurement — run existing translator tests and document which pass/fail before sandbox improvements
+- [x] **TEST-02**: Implement a test harness that runs Zotero translator tests against ztractor's sandbox
+- [x] **TEST-03**: Baseline measurement — run existing translator tests and document which pass/fail before sandbox improvements
 
 ### Sandbox Compatibility
 
@@ -66,8 +66,8 @@
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | TEST-01 | Phase 1 | Complete |
-| TEST-02 | Phase 1 | Pending |
-| TEST-03 | Phase 1 | Pending |
+| TEST-02 | Phase 1 | Complete |
+| TEST-03 | Phase 1 | Complete |
 | SAND-01 | Phase 2 | Pending |
 | SAND-02 | Phase 2 | Pending |
 | SAND-05 | Phase 2 | Pending |

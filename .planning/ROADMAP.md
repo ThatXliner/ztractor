@@ -12,7 +12,7 @@ This milestone takes the existing rewrite branch — a modern executor with 173 
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Test Infrastructure** - Understand Zotero's test format and build a harness that runs translator tests against ztractor's sandbox
+- [x] **Phase 1: Test Infrastructure** - Understand Zotero's test format and build a harness that runs translator tests against ztractor's sandbox (completed 2026-03-27)
 - [ ] **Phase 2: Sandbox Core API** - Implement the Zotero.Item and ZU base API surface that translators depend on for detection and basic extraction
 - [ ] **Phase 3: Sandbox Advanced Flows** - Implement multi-page fetch, HTTP sub-requests, item selection, and translator-to-translator delegation
 - [ ] **Phase 4: Verification** - Confirm real-world translators pass and existing tests hold
@@ -30,10 +30,10 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. A test harness exists that takes a translator's test cases and runs them against ztractor's sandbox
   3. A baseline report exists showing which translators pass and fail before any sandbox changes
   4. The harness is runnable with a single command: `bun test` or equivalent
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 Plans:
 - [x] 01-01-PLAN.md — Harness utilities: test case parser, item normalizer, and item comparator with unit tests
-- [ ] 01-02-PLAN.md — Harness runner, zotero-compat smoke test, and baseline report script
+- [x] 01-02-PLAN.md — Harness runner, zotero-compat smoke test, and baseline report script
 
 ### Phase 2: Sandbox Core API
 **Goal**: Translators that use Zotero.Item and ZU base utilities can detect and extract metadata without crashing on missing API
@@ -95,7 +95,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Test Infrastructure | 1/2 | In Progress|  |
+| 1. Test Infrastructure | 2/2 | Complete   | 2026-03-27 |
 | 2. Sandbox Core API | 0/TBD | Not started | - |
 | 3. Sandbox Advanced Flows | 0/TBD | Not started | - |
 | 4. Verification | 0/TBD | Not started | - |
