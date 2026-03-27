@@ -24,6 +24,7 @@ The sandbox is compatible enough that real Zotero translators pass Zotero's own 
 
 ### Active
 
+- [ ] Test harness — parseTestCases(), runTranslatorWebTest(), baseline report script — Validated in Phase 1: Test Infrastructure
 - [ ] Sandbox compatibility — full Zotero translator API surface (ZU.*, Zotero.Item, calling conventions) so real translators run correctly
 - [ ] Passes Zotero's own translator test suite — the gold standard for compatibility
 - [ ] `ztractor-node` package — Node.js wrapper with linkedom + XPath pre-wired
@@ -47,7 +48,7 @@ The sandbox is compatible enough that real Zotero translators pass Zotero's own 
 - Currently on `rewrite` branch — fresh executor (`translator-system-modern.ts`) replaced old broken code; 173 unit/integration tests pass, but real-world translator compatibility is the open question
 - Node.js package (`packages/node`) is planned but not yet implemented
 - `ztractor-node` needs XPath support for translators that use `document.evaluate()` — linkedom parses fast but has limited XPath; xmldom can handle XPath queries
-- Zotero's translator test format is not yet understood — need to investigate how to run their tests against ztractor's sandbox
+- Zotero translator test format uses inline `BEGIN/END TEST CASES` JSON markers; all 3,428 web tests require live HTTP (no embedded snapshots); 233 use `defer` (JS rendering, skip); `bun run baseline` generates pass/fail report — Phase 1 complete 2026-03-27
 
 ## Constraints
 
@@ -85,4 +86,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-26 after initialization*
+*Last updated: 2026-03-27 after Phase 1: Test Infrastructure*
