@@ -749,7 +749,7 @@ export class TranslatorExecutor {
        * Load embedded translator
        */
       loadTranslator: (type: string) => {
-        return this.createTranslatorLoader(doc, url, onItemComplete);
+        return this.createTranslatorLoader(doc, url, onItemComplete, pendingWork);
       },
 
       /**
@@ -781,8 +781,10 @@ export class TranslatorExecutor {
   private createTranslatorLoader(
     doc: Document,
     url: string,
-    onItemComplete?: (item: ZoteroItem) => void
+    onItemComplete?: (item: ZoteroItem) => void,
+    pendingWork?: Promise<any>[]
   ) {
+    const executor = this;  // Capture before returning object literal
     let translatorId: string | null = null;
     let translatorDoc: Document = doc;
     const handlers: Record<string, Function> = {};
@@ -801,13 +803,13 @@ export class TranslatorExecutor {
       },
 
       async getTranslatorObject(callback: Function) {
-        if (!translatorId || !this.options.getTranslatorById) {
+        if (!translatorId || !executor.options.getTranslatorById) {
           callback({});
           return;
         }
 
         try {
-          const embeddedTranslator = await this.options.getTranslatorById(translatorId);
+          const embeddedTranslator = await executor.options.getTranslatorById(translatorId);
           if (!embeddedTranslator) {
             console.warn(`Embedded translator ${translatorId} not found`);
             callback({});
@@ -815,48 +817,67 @@ export class TranslatorExecutor {
           }
 
           // Create sandbox for embedded translator
-          const embeddedSandbox = this.createSandbox(translatorDoc, url, (item) => {
+          const embeddedSandbox = executor.createSandbox(translatorDoc, url, (item) => {
             if (handlers.itemDone) {
+              // Attach no-op complete() so itemDone handlers can safely call item.complete()
+              // (matches Zotero translate.js line 393-395 behavior)
+              if (typeof item.complete !== 'function') item.complete = () => {};
               handlers.itemDone(null, item);
             }
             if (onItemComplete) {
               onItemComplete(item);
             }
-          });
+          }, pendingWork);  // Thread pendingWork through
 
-          // Execute embedded translator code
+          // Build function with full parameter list matching doWeb sandbox
           const fn = new Function(
-            'doc',
-            'url',
-            'Zotero',
-            'ZU',
-            'attr',
-            'text',
-            'XPathResult',
-            `
-              ${embeddedTranslator.code}
-
-              return {
-                detectWeb: typeof detectWeb !== 'undefined' ? detectWeb : null,
-                doWeb: typeof doWeb !== 'undefined' ? doWeb : null,
-              };
-            `
+            'Zotero', 'ZU', 'Z', 'attr', 'text', 'innerText',
+            'request', 'requestText', 'requestJSON', 'requestDocument',
+            embeddedTranslator.code + '\nreturn { detectWeb: (typeof detectWeb !== "undefined" ? detectWeb : undefined), doWeb: (typeof doWeb !== "undefined" ? doWeb : undefined) };'
           );
 
-          const translatorObject = fn(
-            translatorDoc,
-            url,
-            embeddedSandbox.Zotero,
-            embeddedSandbox.ZU,
-            attr,
-            text,
-            XPathResult
+          const transObj = fn(
+            embeddedSandbox.Zotero, embeddedSandbox.ZU, embeddedSandbox.Zotero,
+            attr, text, innerText,
+            embeddedSandbox.ZU.request?.bind(embeddedSandbox.ZU),
+            embeddedSandbox.ZU.requestText?.bind(embeddedSandbox.ZU),
+            embeddedSandbox.ZU.requestJSON?.bind(embeddedSandbox.ZU),
+            embeddedSandbox.ZU.requestDocument?.bind(embeddedSandbox.ZU)
           );
 
-          callback(translatorObject);
+          callback(transObj);
         } catch (e) {
-          console.error('Error loading embedded translator:', e);
+          console.error('Error in getTranslatorObject:', e);
           callback({});
+        }
+      },
+
+      async translate() {
+        if (!translatorId || !executor.options.getTranslatorById) return;
+        try {
+          const embeddedTranslator = await executor.options.getTranslatorById(translatorId);
+          if (!embeddedTranslator) return;
+          const p = executor.doWeb(embeddedTranslator, translatorDoc, url)
+            .then(subItems => {
+              for (const item of subItems) {
+                if (handlers.itemDone) {
+                  // Attach no-op complete() so itemDone handlers can safely call item.complete()
+                  // (matches Zotero translate.js line 393-395 behavior)
+                  if (typeof item.complete !== 'function') item.complete = () => {};
+                  handlers.itemDone(null, item);
+                }
+                if (onItemComplete) onItemComplete(item);
+              }
+            });
+          if (pendingWork) pendingWork.push(p);
+          // Note: we both push to pendingWork (so the outer doWeb drain loop
+          // waits for completion) AND await here (so translate() callers who
+          // await the result get correct sequencing). The double-track is
+          // intentional — pendingWork handles fire-and-forget callers,
+          // await handles callers who chain on translate().
+          await p;
+        } catch (e) {
+          console.error('Error in translate() for embedded translator:', e);
         }
       },
     };
