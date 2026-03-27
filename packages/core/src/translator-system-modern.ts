@@ -468,10 +468,10 @@ export class TranslatorExecutor {
 
   constructor(options: TranslatorExecutorOptions = {}) {
     this.options = {
-      dependencies: {
+      ...options,
+      dependencies: options.dependencies ?? {
         DOMParser: (globalThis as any).DOMParser,
       },
-      ...options,
     };
   }
 
@@ -501,6 +501,7 @@ export class TranslatorExecutor {
         'requestJSON',
         'requestDocument',
         'XPathResult',
+        'DOMParser',
         `
           ${translator.code}
 
@@ -511,6 +512,7 @@ export class TranslatorExecutor {
         `
       );
 
+      const dependencies = this.options.dependencies;
       const result = fn(
         doc,
         url,
@@ -524,7 +526,8 @@ export class TranslatorExecutor {
         sandbox.ZU.requestText?.bind(sandbox.ZU),
         sandbox.ZU.requestJSON?.bind(sandbox.ZU),
         sandbox.ZU.requestDocument?.bind(sandbox.ZU),
-        XPathResult
+        XPathResult,
+        dependencies?.DOMParser ?? (globalThis as any).DOMParser
       );
 
       return result;
@@ -566,6 +569,7 @@ export class TranslatorExecutor {
           'requestJSON',
           'requestDocument',
           'XPathResult',
+          'DOMParser',
           `
             ${translator.code}
 
@@ -579,6 +583,7 @@ export class TranslatorExecutor {
           `
         );
 
+        const dependencies = this.options.dependencies;
         const result = fn(
           doc,
           url,
@@ -592,7 +597,8 @@ export class TranslatorExecutor {
           sandbox.ZU.requestText?.bind(sandbox.ZU),
           sandbox.ZU.requestJSON?.bind(sandbox.ZU),
           sandbox.ZU.requestDocument?.bind(sandbox.ZU),
-          XPathResult
+          XPathResult,
+          dependencies?.DOMParser ?? (globalThis as any).DOMParser
         );
 
         // Drain all pending work (async HTTP sub-requests, processDocuments, etc.)
@@ -804,7 +810,7 @@ export class TranslatorExecutor {
 
       async getTranslatorObject(callback: Function) {
         if (!translatorId || !executor.options.getTranslatorById) {
-          callback({});
+          try { callback({}); } catch (_e) {}
           return;
         }
 
@@ -812,7 +818,7 @@ export class TranslatorExecutor {
           const embeddedTranslator = await executor.options.getTranslatorById(translatorId);
           if (!embeddedTranslator) {
             console.warn(`Embedded translator ${translatorId} not found`);
-            callback({});
+            try { callback({}); } catch (_e) {}
             return;
           }
 
@@ -833,22 +839,26 @@ export class TranslatorExecutor {
           const fn = new Function(
             'Zotero', 'ZU', 'Z', 'attr', 'text', 'innerText',
             'request', 'requestText', 'requestJSON', 'requestDocument',
+            'XPathResult', 'DOMParser',
             embeddedTranslator.code + '\nreturn { detectWeb: (typeof detectWeb !== "undefined" ? detectWeb : undefined), doWeb: (typeof doWeb !== "undefined" ? doWeb : undefined) };'
           );
 
+          const embeddedDeps = executor.options.dependencies;
           const transObj = fn(
             embeddedSandbox.Zotero, embeddedSandbox.ZU, embeddedSandbox.Zotero,
             attr, text, innerText,
             embeddedSandbox.ZU.request?.bind(embeddedSandbox.ZU),
             embeddedSandbox.ZU.requestText?.bind(embeddedSandbox.ZU),
             embeddedSandbox.ZU.requestJSON?.bind(embeddedSandbox.ZU),
-            embeddedSandbox.ZU.requestDocument?.bind(embeddedSandbox.ZU)
+            embeddedSandbox.ZU.requestDocument?.bind(embeddedSandbox.ZU),
+            XPathResult,
+            embeddedDeps?.DOMParser ?? (globalThis as any).DOMParser
           );
 
-          callback(transObj);
+          try { callback(transObj); } catch (_e) {}
         } catch (e) {
           console.error('Error in getTranslatorObject:', e);
-          callback({});
+          try { callback({}); } catch (_e) {}
         }
       },
 
