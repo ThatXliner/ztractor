@@ -57,7 +57,10 @@ Plans:
   2. `ZU.doGet()` and `ZU.doPost()` make HTTP requests and deliver responses to translator callbacks
   3. Translators that call `Zotero.selectItems()` receive a working callback that auto-selects all items
   4. Translators that call `Zotero.loadTranslator()` to delegate to another translator successfully extract items
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 03-01-PLAN.md — Async pending-work tracking, ZU.processDocuments, ZU.doGet/doPost, selectItems async flow
+- [ ] 03-02-PLAN.md — Fix loadTranslator this-context bugs, add translate() method for translator delegation
 
 ### Phase 4: Verification
 **Goal**: A representative set of real-world translators pass their Zotero test cases and no existing tests regress
@@ -99,7 +102,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 |-------|----------------|--------|-----------|
 | 1. Test Infrastructure | 2/2 | Complete   | 2026-03-27 |
 | 2. Sandbox Core API | 0/1 | In progress | - |
-| 3. Sandbox Advanced Flows | 0/TBD | Not started | - |
+| 3. Sandbox Advanced Flows | 0/2 | Not started | - |
 | 4. Verification | 0/TBD | Not started | - |
 | 5. Node.js Package | 0/TBD | Not started | - |
 | 6. Publish | 0/TBD | Not started | - |
