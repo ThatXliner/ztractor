@@ -24,7 +24,8 @@ The sandbox is compatible enough that real Zotero translators pass Zotero's own 
 
 ### Active
 
-- [ ] Test harness — parseTestCases(), runTranslatorWebTest(), baseline report script — Validated in Phase 1: Test Infrastructure
+- ✓ Test harness — parseTestCases(), runTranslatorWebTest(), baseline report script — Validated in Phase 1: Test Infrastructure
+- ✓ Sandbox core API — Z alias, innerText global, bare request* functions, item.setExtra(), Zotero.isConnector/isServer/isBookmarklet flags, ZU.HTTP alias — Validated in Phase 2: Sandbox Core API
 - [ ] Sandbox compatibility — full Zotero translator API surface (ZU.*, Zotero.Item, calling conventions) so real translators run correctly
 - [ ] Passes Zotero's own translator test suite — the gold standard for compatibility
 - [ ] `ztractor-node` package — Node.js wrapper with linkedom + XPath pre-wired
@@ -49,6 +50,7 @@ The sandbox is compatible enough that real Zotero translators pass Zotero's own 
 - Node.js package (`packages/node`) is planned but not yet implemented
 - `ztractor-node` needs XPath support for translators that use `document.evaluate()` — linkedom parses fast but has limited XPath; xmldom can handle XPath queries
 - Zotero translator test format uses inline `BEGIN/END TEST CASES` JSON markers; all 3,428 web tests require live HTTP (no embedded snapshots); 233 use `defer` (JS rendering, skip); `bun run baseline` generates pass/fail report — Phase 1 complete 2026-03-27
+- Phase 2 added missing sandbox globals: Z alias, innerText(), bare request* functions (via prototype-chain walk), item.setExtra(), Zotero flags (isConnector/isServer/isBookmarklet), ZU.HTTP alias — 32/32 sandbox tests pass — Phase 2 complete 2026-03-27
 
 ## Constraints
 
@@ -86,4 +88,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-27 after Phase 1: Test Infrastructure*
+*Last updated: 2026-03-27 after Phase 2: Sandbox Core API*
