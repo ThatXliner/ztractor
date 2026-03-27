@@ -19,7 +19,7 @@
 - [x] **SAND-04**: `ZU.doGet()` / `ZU.doPost()` work correctly — translators use these for HTTP sub-requests
 - [x] **SAND-05**: Translator calling conventions match what Zotero's runtime provides — `detectWeb()` and `doWeb()` receive the correct arguments and `this` context
 - [x] **SAND-06**: Multi-item selection flow works — translators that call `Zotero.selectItems()` get a functioning callback
-- [ ] **SAND-07**: Translator-to-translator calls work — translators that delegate to other translators (via `Zotero.loadTranslator`) function correctly
+- [x] **SAND-07**: Translator-to-translator calls work — translators that delegate to other translators (via `Zotero.loadTranslator`) function correctly
 
 ### Verification
 
@@ -74,7 +74,7 @@
 | SAND-03 | Phase 3 | Complete |
 | SAND-04 | Phase 3 | Complete |
 | SAND-06 | Phase 3 | Complete |
-| SAND-07 | Phase 3 | Pending |
+| SAND-07 | Phase 3 | Complete |
 | VERIFY-01 | Phase 4 | Pending |
 | VERIFY-02 | Phase 4 | Pending |
 | NODE-01 | Phase 5 | Pending |

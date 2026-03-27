@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 03-01-PLAN.md
-last_updated: "2026-03-27T07:49:04.103Z"
+status: verifying
+stopped_at: Completed 03-02-PLAN.md
+last_updated: "2026-03-27T07:55:00.275Z"
 last_activity: 2026-03-27
 progress:
   total_phases: 6
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 5
-  completed_plans: 4
+  completed_plans: 5
   percent: 0
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-03-26)
 
 Phase: 03 (sandbox-advanced-flows) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-03-27
 
 Progress: [░░░░░░░░░░] 0%
@@ -56,6 +56,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P02 | 3 | 2 tasks | 6 files |
 | Phase 02 P01 | 184s | 2 tasks | 2 files |
 | Phase 03-sandbox-advanced-flows P01 | 3min | 1 tasks | 2 files |
+| Phase 03-sandbox-advanced-flows P02 | 3min | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -74,6 +75,9 @@ Recent decisions affecting current work:
 - [Phase 02]: Copy prototype methods to wrappedZU (not just spread) to expose request/requestText/requestJSON/requestDocument from ZoteroUtilities.Translate prototype
 - [Phase 03-sandbox-advanced-flows]: pendingWork array (not counter) allows drain loop to catch promises added by nested callbacks (selectItems -> processDocuments)
 - [Phase 03-sandbox-advanced-flows]: doGet/doPost use callback pattern (not Promise return) to match Zotero's API surface for real translator compatibility
+- [Phase 03-sandbox-advanced-flows]: Capture executor with const executor = this before object literal return to avoid unbound this in createTranslatorLoader
+- [Phase 03-sandbox-advanced-flows]: Attach no-op complete() to itemDone items to match Zotero's behavior where item.complete is re-attached before handler fires
+- [Phase 03-sandbox-advanced-flows]: translate() both pushes to pendingWork AND awaits — fire-and-forget and await-chaining both supported
 
 ### Pending Todos
 
@@ -87,6 +91,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-27T07:49:04.101Z
-Stopped at: Completed 03-01-PLAN.md
+Last session: 2026-03-27T07:55:00.273Z
+Stopped at: Completed 03-02-PLAN.md
 Resume file: None

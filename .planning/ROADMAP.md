@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Test Infrastructure** - Understand Zotero's test format and build a harness that runs translator tests against ztractor's sandbox (completed 2026-03-27)
 - [ ] **Phase 2: Sandbox Core API** - Implement the Zotero.Item and ZU base API surface that translators depend on for detection and basic extraction
-- [ ] **Phase 3: Sandbox Advanced Flows** - Implement multi-page fetch, HTTP sub-requests, item selection, and translator-to-translator delegation
+- [x] **Phase 3: Sandbox Advanced Flows** - Implement multi-page fetch, HTTP sub-requests, item selection, and translator-to-translator delegation (completed 2026-03-27)
 - [ ] **Phase 4: Verification** - Confirm real-world translators pass and existing tests hold
 - [ ] **Phase 5: Node.js Package** - Ship ztractor-node with linkedom + XPath pre-wired and matching core API
 - [ ] **Phase 6: Publish** - Publish both packages to npm with correct metadata and READMEs
@@ -57,10 +57,10 @@ Plans:
   2. `ZU.doGet()` and `ZU.doPost()` make HTTP requests and deliver responses to translator callbacks
   3. Translators that call `Zotero.selectItems()` receive a working callback that auto-selects all items
   4. Translators that call `Zotero.loadTranslator()` to delegate to another translator successfully extract items
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 Plans:
 - [x] 03-01-PLAN.md — Async pending-work tracking, ZU.processDocuments, ZU.doGet/doPost, selectItems async flow
-- [ ] 03-02-PLAN.md — Fix loadTranslator this-context bugs, add translate() method for translator delegation
+- [x] 03-02-PLAN.md — Fix loadTranslator this-context bugs, add translate() method for translator delegation
 
 ### Phase 4: Verification
 **Goal**: A representative set of real-world translators pass their Zotero test cases and no existing tests regress
@@ -102,7 +102,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 |-------|----------------|--------|-----------|
 | 1. Test Infrastructure | 2/2 | Complete   | 2026-03-27 |
 | 2. Sandbox Core API | 0/1 | In progress | - |
-| 3. Sandbox Advanced Flows | 1/2 | In Progress|  |
+| 3. Sandbox Advanced Flows | 2/2 | Complete   | 2026-03-27 |
 | 4. Verification | 0/TBD | Not started | - |
 | 5. Node.js Package | 0/TBD | Not started | - |
 | 6. Publish | 0/TBD | Not started | - |
