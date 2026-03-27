@@ -70,7 +70,7 @@ Plans:
   1. Translators for academic publishers (e.g., arXiv, DOI, Wikipedia) pass their Zotero test cases when run via the Phase 1 harness
   2. A news site translator and at least one social/general translator also pass
   3. All 173 existing ztractor unit and integration tests continue to pass
-**Plans:** 2/2 plans complete
+**Plans:** 3/4 plans executed
 Plans:
 - [x] 04-01-PLAN.md — Fix three sandbox bugs: unhandled rejection in getTranslatorObject, missing DOMParser in Function context, dependencies spread override
 - [x] 04-02-PLAN.md — Add TRANSLATOR_COMPAT-gated live tests for Wikipedia, arXiv, reddit, and a news site
@@ -106,6 +106,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 1. Test Infrastructure | 2/2 | Complete   | 2026-03-27 |
 | 2. Sandbox Core API | 1/1 | Complete   | 2026-03-27 |
 | 3. Sandbox Advanced Flows | 2/2 | Complete   | 2026-03-27 |
-| 4. Verification | 2/2 | Complete   | 2026-03-27 |
+| 4. Verification | 3/4 | In Progress|  |
 | 5. Node.js Package | 0/TBD | Not started | - |
 | 6. Publish | 0/TBD | Not started | - |
