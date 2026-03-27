@@ -805,3 +805,233 @@ describe('Complete Translator Workflow', () => {
     expect(items[0].tags).toEqual(['JavaScript', 'Programming']);
   });
 });
+
+describe('loadTranslator', () => {
+  const embeddedCode = `
+    function doWeb(doc, url) {
+      var item = new Zotero.Item('journalArticle');
+      item.title = 'Embedded Result';
+      item.url = url;
+      item.complete();
+    }
+  `;
+
+  function makeEmbeddedTranslator(code: string) {
+    return {
+      metadata: { label: 'Embedded', translatorID: 'embed-id', target: '', priority: 100, translatorType: 4, lastUpdated: '' },
+      code,
+    };
+  }
+
+  test('getTranslatorObject calls callback with {detectWeb, doWeb} from embedded translator', async () => {
+    const embeddedTranslator = makeEmbeddedTranslator(embeddedCode);
+    const executor = new TranslatorExecutor({
+      getTranslatorById: async (id) => id === 'embed-id' ? embeddedTranslator : null,
+    });
+
+    const parentCode = `
+      async function doWeb(doc, url) {
+        var translator = Zotero.loadTranslator('web');
+        translator.setTranslator('embed-id');
+        translator.setDocument(doc);
+        translator.setHandler('itemDone', function(obj, item) { item.complete(); });
+        await new Promise(function(resolve) {
+          translator.getTranslatorObject(function(trans) {
+            trans.doWeb(doc, url);
+            resolve();
+          });
+        });
+      }
+    `;
+    const parentTranslator = makeTranslator(parentCode);
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString('<html><body></body></html>', 'text/html');
+    const items = await executor.doWeb(parentTranslator, doc, 'http://example.com/article');
+
+    expect(items).toHaveLength(1);
+    expect(items[0].title).toBe('Embedded Result');
+  });
+
+  test('getTranslatorObject without getTranslatorById option calls callback with empty object', async () => {
+    const executor = new TranslatorExecutor(); // no getTranslatorById
+    let callbackArg: any = undefined;
+
+    const parentCode = `
+      async function doWeb(doc, url) {
+        var translator = Zotero.loadTranslator('web');
+        translator.setTranslator('some-id');
+        await new Promise(function(resolve) {
+          translator.getTranslatorObject(function(trans) {
+            // store how many keys this object has
+            var item = new Zotero.Item('journalArticle');
+            item.title = Object.keys(trans).length === 0 ? 'empty-object' : 'non-empty';
+            item.complete();
+            resolve();
+          });
+        });
+      }
+    `;
+    const parentTranslator = makeTranslator(parentCode);
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString('<html><body></body></html>', 'text/html');
+    const items = await executor.doWeb(parentTranslator, doc, 'http://example.com');
+
+    expect(items).toHaveLength(1);
+    expect(items[0].title).toBe('empty-object');
+  });
+
+  test('translate() executes embedded translator doWeb and items arrive via itemDone handler', async () => {
+    const embeddedTranslator = makeEmbeddedTranslator(embeddedCode);
+    const executor = new TranslatorExecutor({
+      getTranslatorById: async (id) => id === 'embed-id' ? embeddedTranslator : null,
+    });
+
+    const parentCode = `
+      async function doWeb(doc, url) {
+        var translator = Zotero.loadTranslator('web');
+        translator.setTranslator('embed-id');
+        translator.setDocument(doc);
+        var itemDoneFired = false;
+        translator.setHandler('itemDone', function(obj, item) {
+          itemDoneFired = true;
+          item.complete();
+        });
+        await translator.translate();
+      }
+    `;
+    const parentTranslator = makeTranslator(parentCode);
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString('<html><body></body></html>', 'text/html');
+    const items = await executor.doWeb(parentTranslator, doc, 'http://example.com/article');
+
+    expect(items).toHaveLength(1);
+    expect(items[0].title).toBe('Embedded Result');
+  });
+
+  test('translate() items also arrive in parent doWeb items array via onItemComplete', async () => {
+    const embeddedTranslator = makeEmbeddedTranslator(embeddedCode);
+    const executor = new TranslatorExecutor({
+      getTranslatorById: async (id) => id === 'embed-id' ? embeddedTranslator : null,
+    });
+
+    const parentCode = `
+      async function doWeb(doc, url) {
+        var translator = Zotero.loadTranslator('web');
+        translator.setTranslator('embed-id');
+        translator.setDocument(doc);
+        translator.setHandler('itemDone', function(obj, item) { item.complete(); });
+        await translator.translate();
+        // Also create a parent item
+        var parentItem = new Zotero.Item('journalArticle');
+        parentItem.title = 'Parent Item';
+        parentItem.complete();
+      }
+    `;
+    const parentTranslator = makeTranslator(parentCode);
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString('<html><body></body></html>', 'text/html');
+    const items = await executor.doWeb(parentTranslator, doc, 'http://example.com/article');
+
+    expect(items).toHaveLength(2);
+    const titles = items.map((i: any) => i.title).sort();
+    expect(titles).toContain('Embedded Result');
+    expect(titles).toContain('Parent Item');
+  });
+
+  test('translate() with missing translator ID is a no-op (does not throw)', async () => {
+    const executor = new TranslatorExecutor({
+      getTranslatorById: async () => null,
+    });
+
+    const parentCode = `
+      async function doWeb(doc, url) {
+        var translator = Zotero.loadTranslator('web');
+        // no setTranslator call — translatorId is null
+        await translator.translate();
+        var item = new Zotero.Item('journalArticle');
+        item.title = 'no-throw';
+        item.complete();
+      }
+    `;
+    const parentTranslator = makeTranslator(parentCode);
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString('<html><body></body></html>', 'text/html');
+    const items = await executor.doWeb(parentTranslator, doc, 'http://example.com');
+
+    expect(items).toHaveLength(1);
+    expect(items[0].title).toBe('no-throw');
+  });
+
+  test('setDocument changes the document passed to embedded translator', async () => {
+    const embeddedWithDocRead = `
+      function doWeb(doc, url) {
+        var item = new Zotero.Item('journalArticle');
+        item.title = doc.querySelector('h1') ? doc.querySelector('h1').textContent : 'no-h1';
+        item.complete();
+      }
+    `;
+    const embeddedTranslator = makeEmbeddedTranslator(embeddedWithDocRead);
+    const executor = new TranslatorExecutor({
+      getTranslatorById: async (id) => id === 'embed-id' ? embeddedTranslator : null,
+    });
+
+    const parentCode = `
+      async function doWeb(doc, url) {
+        var parser = new DOMParser();
+        var newDoc = parser.parseFromString('<html><body><h1>From New Doc</h1></body></html>', 'text/html');
+        var translator = Zotero.loadTranslator('web');
+        translator.setTranslator('embed-id');
+        translator.setDocument(newDoc);
+        translator.setHandler('itemDone', function(obj, item) { item.complete(); });
+        await translator.translate();
+      }
+    `;
+    const parentTranslator = makeTranslator(parentCode);
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString('<html><body></body></html>', 'text/html');
+    const items = await executor.doWeb(parentTranslator, doc, 'http://example.com');
+
+    expect(items).toHaveLength(1);
+    expect(items[0].title).toBe('From New Doc');
+  });
+
+  test('setHandler itemDone receives (null, item) for each completed item', async () => {
+    const embeddedTranslator = makeEmbeddedTranslator(embeddedCode);
+    const executor = new TranslatorExecutor({
+      getTranslatorById: async (id) => id === 'embed-id' ? embeddedTranslator : null,
+    });
+
+    // We use a workaround: store the first arg to a Zotero.Item field so we can inspect it
+    const parentCode = `
+      async function doWeb(doc, url) {
+        var translator = Zotero.loadTranslator('web');
+        translator.setTranslator('embed-id');
+        translator.setDocument(doc);
+        var firstArg = 'not-null';
+        translator.setHandler('itemDone', function(obj, item) {
+          firstArg = obj;  // should be null
+          item.complete();
+          // set firstArg on a new item
+          var marker = new Zotero.Item('journalArticle');
+          marker.title = obj === null ? 'first-arg-null' : 'first-arg-not-null';
+          marker.complete();
+        });
+        await translator.translate();
+      }
+    `;
+    const parentTranslator = makeTranslator(parentCode);
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString('<html><body></body></html>', 'text/html');
+    const items = await executor.doWeb(parentTranslator, doc, 'http://example.com');
+
+    const markerItem = items.find((i: any) => i.title === 'first-arg-null' || i.title === 'first-arg-not-null');
+    expect(markerItem?.title).toBe('first-arg-null');
+  });
+});
