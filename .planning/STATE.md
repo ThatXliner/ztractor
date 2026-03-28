@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Completed 05-01-PLAN.md
-last_updated: "2026-03-28T02:43:43.343Z"
+status: executing
+stopped_at: Completed 06-01-PLAN.md
+last_updated: "2026-03-28T03:03:58.994Z"
 last_activity: 2026-03-28
 progress:
   total_phases: 6
   completed_phases: 5
-  total_plans: 10
-  completed_plans: 10
+  total_plans: 12
+  completed_plans: 11
   percent: 0
 ---
 
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-26)
 
 **Core value:** The sandbox is compatible enough that real Zotero translators pass Zotero's own test suite — meaning any translator that works in Zotero works in ztractor.
-**Current focus:** Phase 05 — node-js-package
+**Current focus:** Phase 06 — publish
 
 ## Current Position
 
-Phase: 6
-Plan: Not started
-Status: Phase complete — ready for verification
+Phase: 06 (publish) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
 Last activity: 2026-03-28
 
 Progress: [░░░░░░░░░░] 0%
@@ -61,6 +61,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 04-verification P02 | 150 | 1 tasks | 6 files |
 | Phase 04-verification P03 | 2min | 1 tasks | 1 files |
 | Phase 05-node-js-package P01 | 20min | 2 tasks | 5 files |
+| Phase 06-publish P01 | 68s | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -91,6 +92,8 @@ Recent decisions affecting current work:
 - [Phase 05-node-js-package]: Export Item from ./item (class with setComplete/toJSON/addCreator/addNote/addTag), not ZoteroItem from translator-system-modern (sandbox class)
 - [Phase 05-node-js-package]: Add addTag/addNote/addCreator to sandbox ZoteroItem to match Zotero API surface for real translator compatibility
 - [Phase 05-node-js-package]: Generic translators (unAPI, COinS, Embedded Metadata, DOI) match any URL via empty target pattern
+- [Phase 06-publish]: Use arXiv GPT-4 paper (2303.08774) as stable quick-start example — stable URL, realistic preprint output with DOI, creators, date
+- [Phase 06-publish]: Replace workspace:* with ^1.0.0 in ztractor-node — workspace protocol fails on npm registry; semver required for publishing
 
 ### Pending Todos
 
@@ -104,6 +107,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-28T02:41:18.550Z
-Stopped at: Completed 05-01-PLAN.md
+Last session: 2026-03-28T03:03:58.991Z
+Stopped at: Completed 06-01-PLAN.md
 Resume file: None

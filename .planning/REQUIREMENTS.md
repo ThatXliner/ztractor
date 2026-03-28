@@ -34,9 +34,9 @@
 
 ### Publishing
 
-- [ ] **PUB-01**: `ztractor` (core) published to npm with correct exports, types, and package.json fields
-- [ ] **PUB-02**: `ztractor-node` published to npm with correct exports, types, and package.json fields
-- [ ] **PUB-03**: Both packages have a README with install instructions and a working quick-start example
+- [x] **PUB-01**: `ztractor` (core) published to npm with correct exports, types, and package.json fields
+- [x] **PUB-02**: `ztractor-node` published to npm with correct exports, types, and package.json fields
+- [x] **PUB-03**: Both packages have a README with install instructions and a working quick-start example
 
 ## v2 Requirements
 
@@ -80,9 +80,9 @@
 | NODE-01 | Phase 5 | Complete |
 | NODE-02 | Phase 5 | Complete |
 | NODE-03 | Phase 5 | Complete |
-| PUB-01 | Phase 6 | Pending |
-| PUB-02 | Phase 6 | Pending |
-| PUB-03 | Phase 6 | Pending |
+| PUB-01 | Phase 6 | Complete |
+| PUB-02 | Phase 6 | Complete |
+| PUB-03 | Phase 6 | Complete |
 
 **Coverage:**
 - v1 requirements: 18 total
