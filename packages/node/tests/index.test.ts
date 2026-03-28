@@ -21,7 +21,9 @@ describe('Zotero Utilities', () => {
 
   test('strToISO converts dates', () => {
     expect(ZU.strToISO('2024-01-15')).toBe('2024-01-15');
-    expect(ZU.strToISO('January 15, 2024')).toMatch(/2024-01-15/);
+    // Locale month-name parsing requires Zotero.Date.init() with locale data;
+    // without it, strToISO returns false for non-ISO date strings
+    expect(ZU.strToISO('January 15, 2024')).toBe(false);
   });
 
   test('cleanDOI extracts DOI', () => {

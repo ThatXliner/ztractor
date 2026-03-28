@@ -14,6 +14,7 @@ import type {
 	Tag,
 	Note,
 	Attachment,
+	Translator,
 } from "./types";
 
 export type {
@@ -25,10 +26,32 @@ export type {
 	Tag,
 	Note,
 	Attachment,
+	Translator,
 };
 
 export { BundledRegistry, HTTPRegistry } from "./registry";
 export type { TranslatorRegistry, TranslatorMetadata } from "./registry";
+export { ZoteroUtilities as ZU } from "./translator-system-modern";
+export { Item } from "./item";
+export { parseTranslatorMetadata } from "./translator-loader";
+
+export async function executeDetectWeb(
+	translator: Translator,
+	doc: Document,
+	url: string,
+): Promise<string | false | null> {
+	const executor = new TranslatorExecutor({});
+	return executor.detectWeb(translator, doc, url);
+}
+
+export async function executeDoWeb(
+	translator: Translator,
+	doc: Document,
+	url: string,
+): Promise<ZoteroItem[]> {
+	const executor = new TranslatorExecutor({});
+	return executor.doWeb(translator, doc, url) as Promise<ZoteroItem[]>;
+}
 
 const defaultRegistry = new BundledRegistry();
 
