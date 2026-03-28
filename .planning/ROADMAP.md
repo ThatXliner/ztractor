@@ -105,9 +105,9 @@ Plans:
 **Goal:** `TRANSLATOR_COMPAT=1 bun test` passes all 5 live translator tests
 **Requirements:** VERIFY-01
 **Gap Closure:** Closes gaps from v1.0 audit (MISS-01, MISS-02, VERIFY-01 flow)
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 Plans:
-- [ ] 07-01-PLAN.md — Fix getAllResponseHeaders and XPath guard bugs in utilities-translate-bundle.ts
+- [x] 07-01-PLAN.md — Fix getAllResponseHeaders and XPath guard bugs in utilities-translate-bundle.ts
 
 Closes:
 - MISS-01: Add `getAllResponseHeaders()` to `Zotero.HTTP.request` xmlhttp object in `utilities-translate-bundle.ts` — affects arXiv and reddit TRANSLATOR_COMPAT tests
@@ -127,4 +127,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 4. Verification | 3/4 | In Progress|  |
 | 5. Node.js Package | 1/1 | Complete   | 2026-03-28 |
 | 6. Publish | 2/2 | Complete   | 2026-03-28 |
-| 7. Fix Translator Compat Bugs | 0/1 | Pending | |
+| 7. Fix Translator Compat Bugs | 1/1 | Complete   | 2026-03-28 |

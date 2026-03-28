@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: Completed 06-02-PLAN.md
-last_updated: "2026-03-28T03:13:10.217Z"
+stopped_at: Completed 07-01-PLAN.md
+last_updated: "2026-03-28T16:39:25.190Z"
 last_activity: 2026-03-28
 progress:
-  total_phases: 6
-  completed_phases: 6
-  total_plans: 12
-  completed_plans: 12
+  total_phases: 7
+  completed_phases: 7
+  total_plans: 13
+  completed_plans: 13
   percent: 0
 ---
 
@@ -21,12 +21,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-26)
 
 **Core value:** The sandbox is compatible enough that real Zotero translators pass Zotero's own test suite — meaning any translator that works in Zotero works in ztractor.
-**Current focus:** Phase 06 — publish
+**Current focus:** Phase 07 — fix-translator-compat-bugs
 
 ## Current Position
 
-Phase: 06
-Plan: Not started
+Phase: 07 (fix-translator-compat-bugs) — EXECUTING
+Plan: 1 of 1
 Status: Phase complete — ready for verification
 Last activity: 2026-03-28
 
@@ -63,6 +63,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 05-node-js-package P01 | 20min | 2 tasks | 5 files |
 | Phase 06-publish P01 | 68s | 3 tasks | 3 files |
 | Phase 06-publish P02 | 5min | 2 tasks | 3 files |
+| Phase 07-fix-translator-compat-bugs P01 | 17min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -96,6 +97,9 @@ Recent decisions affecting current work:
 - [Phase 06-publish]: Use arXiv GPT-4 paper (2303.08774) as stable quick-start example — stable URL, realistic preprint output with DOI, creators, date
 - [Phase 06-publish]: Replace workspace:* with ^1.0.0 in ztractor-node — workspace protocol fails on npm registry; semver required for publishing
 - [Phase 06-publish]: Applied 06-01 README and version fixes to main branch — worktree was on main, not rewrite; required Rule 3 inline fix
+- [Phase 07-fix-translator-compat-bugs]: Apply MISS-01 fix to translation-bundle-patch.js (tracked) for rebuild persistence, not only utilities-translate-bundle.ts (gitignored)
+- [Phase 07-fix-translator-compat-bugs]: XPath attribute node bridge: return plain attr-like object {nodeType:2, value} for @attr xpath queries instead of mapping to linkedom element
+- [Phase 07-fix-translator-compat-bugs]: Inject parseHTMLDocument from packages/node into TRANSLATOR_COMPAT harness — core tests need XPath bridge for Wikipedia
 
 ### Pending Todos
 
@@ -109,6 +113,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-28T03:09:54.276Z
-Stopped at: Completed 06-02-PLAN.md
+Last session: 2026-03-28T16:39:25.188Z
+Stopped at: Completed 07-01-PLAN.md
 Resume file: None
