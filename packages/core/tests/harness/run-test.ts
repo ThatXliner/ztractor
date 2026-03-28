@@ -2,6 +2,7 @@ import { extractMetadata } from '../../src/index';
 import { parseTestCases } from './parse-test-cases';
 import { compareItems } from './compare-items';
 import type { ZoteroTestCase, TestResult, TranslatorResult } from './types';
+import type { ExtractMetadataOptions } from '../../src/types';
 
 /**
  * Run a single web test case against extractMetadata().
@@ -10,6 +11,7 @@ import type { ZoteroTestCase, TestResult, TranslatorResult } from './types';
 export async function runTranslatorWebTest(
 	testCase: ZoteroTestCase,
 	timeoutMs: number = 15000,
+	dependencies?: ExtractMetadataOptions['dependencies'],
 ): Promise<TestResult> {
 	const url = testCase.url ?? testCase.input;
 	if (!url) {
@@ -22,7 +24,7 @@ export async function runTranslatorWebTest(
 	}
 
 	try {
-		const result = await extractMetadata({ url, timeout: timeoutMs });
+		const result = await extractMetadata({ url, timeout: timeoutMs, ...(dependencies ? { dependencies } : {}) });
 
 		if (!result.success) {
 			return { status: 'fail', reason: result.error ?? 'extractMetadata failed' };

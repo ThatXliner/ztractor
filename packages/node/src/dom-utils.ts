@@ -103,9 +103,16 @@ function installXPathSupport(linkedomDoc: any, html: string): void {
       const nodeArray = Array.isArray(xmlNodes) ? xmlNodes : [xmlNodes];
 
       // Map xmldom nodes to linkedom nodes by path
+      // Attribute nodes (nodeType === 2) cannot be mapped to linkedom nodes directly —
+      // return a minimal attribute-like object that satisfies Zotero's xpathText accessor:
+      //   el.nodeType === 2 && "value" in el ? el.value : el.textContent
       const linkedomNodes = nodeArray
         .map((xmlNode: any) => {
           if (!xmlNode || !xmlNode.nodeName) return null;
+          if (xmlNode.nodeType === 2 /* ATTRIBUTE_NODE */) {
+            // Return a plain object that mimics the Attr interface for xpathText
+            return { nodeType: 2, value: xmlNode.nodeValue, nodeValue: xmlNode.nodeValue };
+          }
           return findMatchingLinkedomNode(linkedomDoc, xmlNode);
         })
         .filter(Boolean) as Node[];

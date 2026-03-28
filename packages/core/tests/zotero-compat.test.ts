@@ -3,6 +3,7 @@ import { BundledRegistry } from '../src/index';
 import { parseTestCases } from './harness/parse-test-cases';
 import { runTranslatorWebTest } from './harness/run-test';
 import type { ZoteroTestCase } from './harness/types';
+import { parseHTMLDocument } from '../../node/src/dom-utils';
 
 describe('Zotero translator compatibility', { timeout: 30000 }, () => {
 	async function runTranslatorTest(translatorLabel: string, caseFilter?: (c: ZoteroTestCase) => boolean) {
@@ -15,7 +16,8 @@ describe('Zotero translator compatibility', { timeout: 30000 }, () => {
 		const cases = parseTestCases(code!).filter(t => t.type === 'web' && !t.defer && t.items !== 'multiple');
 		expect(cases.length).toBeGreaterThan(0);
 		const testCase = caseFilter ? cases.find(caseFilter) ?? cases[0] : cases[0];
-		const result = await runTranslatorWebTest(testCase, 30000);
+		// Inject XPath-capable parseHTMLDocument for translators that use XPath queries
+		const result = await runTranslatorWebTest(testCase, 30000, { parseHTMLDocument });
 		return result;
 	}
 
