@@ -1,7 +1,7 @@
 {
     "name": "ztractor-node",
     "description": "Node.js optimized version of Ztractor with linkedom for fast DOM parsing",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "type": "module",
     "author": "Bryan Hu",
     "license": "AGPL-3.0-or-later",
@@ -46,7 +46,7 @@
         "test": "bun test"
     },
     "dependencies": {
-        "ztractor": "workspace:*",
+        "ztractor": "^1.0.0",
         "@xmldom/xmldom": "^0.8.11",
         "linkedom": "^0.18.5",
         "xpath": "^0.0.34"
