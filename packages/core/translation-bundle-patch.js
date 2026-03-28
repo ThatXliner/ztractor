@@ -353,6 +353,13 @@ Zotero.HTTP = new (function () {
 				responseType: options.responseType || "",
 				responseText: "",
 				response: null,
+				getAllResponseHeaders: () => {
+					const parts = [];
+					response.headers.forEach((value, key) => {
+						parts.push(`${key}: ${value}`);
+					});
+					return parts.join('\r\n');
+				},
 			};
 
 			// Handle different response types
