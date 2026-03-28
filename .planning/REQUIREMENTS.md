@@ -28,9 +28,9 @@
 
 ### Node.js Package
 
-- [ ] **NODE-01**: `ztractor-node` package exists with linkedom as the DOM implementation (pre-wired, no manual dependency injection needed)
-- [ ] **NODE-02**: `ztractor-node` supports XPath queries (`document.evaluate()`) used by translators — via xmldom or a compatible implementation
-- [ ] **NODE-03**: `ztractor-node` exports the same API surface as `ztractor` core
+- [x] **NODE-01**: `ztractor-node` package exists with linkedom as the DOM implementation (pre-wired, no manual dependency injection needed)
+- [x] **NODE-02**: `ztractor-node` supports XPath queries (`document.evaluate()`) used by translators — via xmldom or a compatible implementation
+- [x] **NODE-03**: `ztractor-node` exports the same API surface as `ztractor` core
 
 ### Publishing
 
@@ -77,9 +77,9 @@
 | SAND-07 | Phase 3 | Complete |
 | VERIFY-01 | Phase 4 | Complete |
 | VERIFY-02 | Phase 4 | Complete |
-| NODE-01 | Phase 5 | Pending |
-| NODE-02 | Phase 5 | Pending |
-| NODE-03 | Phase 5 | Pending |
+| NODE-01 | Phase 5 | Complete |
+| NODE-02 | Phase 5 | Complete |
+| NODE-03 | Phase 5 | Complete |
 | PUB-01 | Phase 6 | Pending |
 | PUB-02 | Phase 6 | Pending |
 | PUB-03 | Phase 6 | Pending |

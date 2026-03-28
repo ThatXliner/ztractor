@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 04-03-PLAN.md
-last_updated: "2026-03-27T21:36:41.523Z"
-last_activity: 2026-03-27
+status: verifying
+stopped_at: Completed 05-01-PLAN.md
+last_updated: "2026-03-28T02:41:18.553Z"
+last_activity: 2026-03-28
 progress:
   total_phases: 6
-  completed_phases: 4
-  total_plans: 9
-  completed_plans: 9
+  completed_phases: 5
+  total_plans: 10
+  completed_plans: 10
   percent: 0
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-26)
 
 **Core value:** The sandbox is compatible enough that real Zotero translators pass Zotero's own test suite — meaning any translator that works in Zotero works in ztractor.
-**Current focus:** Phase 04 — verification
+**Current focus:** Phase 05 — node-js-package
 
 ## Current Position
 
-Phase: 5
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-03-27
+Phase: 05 (node-js-package) — EXECUTING
+Plan: 1 of 1
+Status: Phase complete — ready for verification
+Last activity: 2026-03-28
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -60,6 +60,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 04-verification P01 | 8min | 1 tasks | 1 files |
 | Phase 04-verification P02 | 150 | 1 tasks | 6 files |
 | Phase 04-verification P03 | 2min | 1 tasks | 1 files |
+| Phase 05-node-js-package P01 | 20min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -87,6 +88,9 @@ Recent decisions affecting current work:
 - [Phase 04-02]: Used NPR instead of The Guardian for news site test — Guardian 2013 test cases no longer match live page og:type metadata
 - [Phase 04-02]: Preprint publisher->repository field aliasing in onItemComplete mirrors Zotero type-schema alias map (zoteroTypeSchemaData preprint: { 124: 8 })
 - [Phase 04-verification]: Root bunfig.toml uses repo-root-relative path (./packages/core/tests/setup.ts) to fix bun test packages/core/ from repo root without modifying package-level bunfig.toml
+- [Phase 05-node-js-package]: Export Item from ./item (class with setComplete/toJSON/addCreator/addNote/addTag), not ZoteroItem from translator-system-modern (sandbox class)
+- [Phase 05-node-js-package]: Add addTag/addNote/addCreator to sandbox ZoteroItem to match Zotero API surface for real translator compatibility
+- [Phase 05-node-js-package]: Generic translators (unAPI, COinS, Embedded Metadata, DOI) match any URL via empty target pattern
 
 ### Pending Todos
 
@@ -100,6 +104,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-27T21:07:56.269Z
-Stopped at: Completed 04-03-PLAN.md
+Last session: 2026-03-28T02:41:18.550Z
+Stopped at: Completed 05-01-PLAN.md
 Resume file: None
