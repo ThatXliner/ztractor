@@ -23,17 +23,17 @@ bun add ztractor
 ```typescript
 import { extractMetadata } from 'ztractor';
 
-// Simple usage - just pass a URL
 const result = await extractMetadata({
-  url: 'https://www.nytimes.com/2024/01/15/technology/example.html',
+  url: 'https://arxiv.org/abs/2303.08774',
 });
 
-if (result.success && result.items) {
+if (result.success) {
   const item = result.items[0];
-  console.log(item.title);        // Article title
-  console.log(item.creators);     // Authors
-  console.log(item.date);         // Publication date
-  console.log(item.itemType);     // "newspaperArticle"
+  console.log(item.itemType);  // "preprint"
+  console.log(item.title);     // "GPT-4 Technical Report"
+  console.log(item.creators);  // [{ firstName: "Josh", lastName: "Achiam", creatorType: "author" }, ...]
+  console.log(item.date);      // "2024-03-04"
+  console.log(item.DOI);       // "10.48550/arXiv.2303.08774"
 }
 ```
 
@@ -42,15 +42,13 @@ if (result.success && result.items) {
 For Node.js environments, use the optimized `ztractor-node` package instead:
 
 ```bash
-npm install ztractor-node
+bun add ztractor-node
 ```
 
 ```typescript
 import { extractMetadata } from 'ztractor-node';
-// Same API as browser version
+// API is identical to the browser version
 ```
-
-The Node.js version uses [linkedom](https://github.com/WebReflection/linkedom) for faster DOM parsing.
 
 ## Features
 
