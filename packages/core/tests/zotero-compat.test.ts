@@ -101,4 +101,7 @@ describe('Zotero translator compatibility', { timeout: 30000 }, () => {
 		},
 		{ timeout: 30000 }
 	);
+
 });
+// ScienceDirect requires Playwright (JS-rendered page, bot detection on RIS endpoint).
+// See .planning/seeds/SEED-001-playwright-browser-testing.md — deferred to v2.
