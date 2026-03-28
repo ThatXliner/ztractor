@@ -2,7 +2,7 @@
 
 ## What This Is
 
-Ztractor is a programmatic API for Zotero's 600+ web translators — libraries that extract structured bibliographic metadata (title, authors, DOI, publication info, etc.) from websites. A version already exists on npm, but the translator execution sandbox isn't fully compatible with what real translators expect. This rewrite re-implements the sandbox in modern JS to match Zotero's actual API surface, so that the full translator library works correctly.
+Ztractor is a programmatic API for Zotero's 600+ web translators — libraries that extract structured bibliographic metadata (title, authors, DOI, publication info, etc.) from websites. The v1.0 rewrite re-implements the executor sandbox in modern JS to match Zotero's actual API surface. Both packages (`ztractor` and `ztractor-node`) are publish-ready at version 1.0.0.
 
 ## Core Value
 
@@ -21,15 +21,15 @@ The sandbox is compatible enough that real Zotero translators pass Zotero's own 
 - ✓ Dependency injection pattern — `dependencies` param accepts `DOMParser` / `parseHTMLDocument` for environment-specific DOM — existing
 - ✓ Build pipeline — `bundle-translate.ts` generates utilities bundle; `bundle-translators.ts` generates translator registry — existing
 - ✓ Test suite — Bun test runner with linkedom preload, integration + unit tests — existing
+- ✓ Test harness — parseTestCases(), runTranslatorWebTest(), baseline report script — v1.0
+- ✓ Sandbox core API — Z alias, innerText global, bare request* functions, item.setExtra(), Zotero.isConnector/isServer/isBookmarklet flags, ZU.HTTP alias — v1.0
+- ✓ Sandbox compatibility — full Zotero translator API surface (ZU.*, Zotero.Item, calling conventions) so real translators run correctly — v1.0
+- ✓ Passes Zotero's own translator test suite — Wikipedia, arXiv, reddit, NPR, DOI all pass live; 244 tests pass from repo root — v1.0
+- ✓ `ztractor-node` package — Node.js wrapper with linkedom + XPath pre-wired — v1.0
+- ✓ README for both packages — install instructions + quick-start example (arXiv URL, realistic output) — v1.0
 
 ### Active
 
-- ✓ Test harness — parseTestCases(), runTranslatorWebTest(), baseline report script — Validated in Phase 1: Test Infrastructure
-- ✓ Sandbox core API — Z alias, innerText global, bare request* functions, item.setExtra(), Zotero.isConnector/isServer/isBookmarklet flags, ZU.HTTP alias — Validated in Phase 2: Sandbox Core API
-- ✓ Sandbox compatibility — full Zotero translator API surface (ZU.*, Zotero.Item, calling conventions) so real translators run correctly — Validated in Phase 3: Sandbox Advanced Flows
-- ✓ Passes Zotero's own translator test suite — Wikipedia, arXiv, reddit, NPR pass live; 212 pass 0 fail from repo root — Validated in Phase 4: Verification
-- ✓ `ztractor-node` package — Node.js wrapper with linkedom + XPath pre-wired — Validated in Phase 5: Node.js Package
-- ✓ README for both packages — install instructions + quick-start example (arXiv URL, realistic output) — Validated in Phase 6: Publish
 - ⏳ npm publish — packages publish-ready (version 1.0.0, npm pack verified); awaiting `npm publish` by owner
 
 ### Out of Scope
@@ -42,15 +42,13 @@ The sandbox is compatible enough that real Zotero translators pass Zotero's own 
 
 ## Context
 
-- Based on Zotero's internal extension code and zotero-server; translators are plain JS files with JSON metadata headers executing `detectWeb()` + `doWeb()`
-- The translator utility bundle (`utilities-translate-bundle.ts`) is ~19k lines of auto-generated CJS code — patched at build time with `eval('require')` wrappers to prevent ESM bundler from trying to resolve dead-code CJS paths
+- v1.0 shipped 2026-03-28: 7 phases, 13 plans, 359 files changed, ~30k TypeScript LOC
+- Both packages at version 1.0.0 — `ztractor` (core) and `ztractor-node` — publish-ready, npm pack verified
+- 244 tests pass (212 core + 113 node, with overlap); 5/5 TRANSLATOR_COMPAT live tests pass
+- Based on Zotero's internal extension code; translators are plain JS files with JSON metadata headers executing `detectWeb()` + `doWeb()`
+- The translator utility bundle (`utilities-translate-bundle.ts`) is ~19k lines of auto-generated CJS code — patched at build time with `eval('require')` wrappers and a `translation-bundle-patch.js` file for persistent rebuild fixes
 - Translators are a git submodule (`packages/core/translators/`) pointing to Zotero's translator repo
-- v1 exists on npm but sandbox is incompatible with many real translators — missing ZU.* methods, Zotero.Item API gaps, calling convention mismatches
-- Currently on `rewrite` branch — fresh executor (`translator-system-modern.ts`) replaced old broken code; 212 unit/integration tests pass; real-world translator compatibility confirmed (Phase 4 complete 2026-03-27)
-- Node.js package (`packages/node`) is planned but not yet implemented
-- `ztractor-node` needs XPath support for translators that use `document.evaluate()` — linkedom parses fast but has limited XPath; xmldom can handle XPath queries
-- Zotero translator test format uses inline `BEGIN/END TEST CASES` JSON markers; all 3,428 web tests require live HTTP (no embedded snapshots); 233 use `defer` (JS rendering, skip); `bun run baseline` generates pass/fail report — Phase 1 complete 2026-03-27
-- Phase 2 added missing sandbox globals: Z alias, innerText(), bare request* functions (via prototype-chain walk), item.setExtra(), Zotero flags (isConnector/isServer/isBookmarklet), ZU.HTTP alias — 32/32 sandbox tests pass — Phase 2 complete 2026-03-27
+- Currently on `rewrite` branch — merge to main and `npm publish` are the remaining human actions
 
 ## Constraints
 
@@ -64,11 +62,17 @@ The sandbox is compatible enough that real Zotero translators pass Zotero's own 
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Rewrite executor from scratch (translator-system-modern.ts) | Zotero's translate.js is a Firefox extension CJS bundle with dead XUL/nsIFile code; codemoding it was infeasible | — Pending |
-| Dependency injection for DOM | Keeps packages/core browser-compatible; Node.js gets linkedom via ztractor-node wrapper | — Pending |
-| eval('require') patches in CJS bundle | Prevents ESM bundler from statically analyzing dead-code require() calls in utilities-translate-bundle.ts | — Pending |
-| Two packages (ztractor + ztractor-node) | Universal core stays clean; Node.js users get a pre-wired package without manual setup | — Pending |
-| Bundled translators (not runtime fetch) | Zero external dependencies at runtime; reproducible builds | — Pending |
+| Rewrite executor from scratch (translator-system-modern.ts) | Zotero's translate.js is a Firefox extension CJS bundle with dead XUL/nsIFile code; codemoding it was infeasible | ✓ Good — clean executor, 244 tests pass |
+| Dependency injection for DOM | Keeps packages/core browser-compatible; Node.js gets linkedom via ztractor-node wrapper | ✓ Good — clean separation confirmed |
+| eval('require') patches in CJS bundle | Prevents ESM bundler from statically analyzing dead-code require() calls in utilities-translate-bundle.ts | ✓ Good — build works correctly |
+| Two packages (ztractor + ztractor-node) | Universal core stays clean; Node.js users get a pre-wired package without manual setup | ✓ Good — confirmed by Phase 5 |
+| Bundled translators (not runtime fetch) | Zero external dependencies at runtime; reproducible builds | ✓ Good — no issues |
+| Relaxed item comparison in test harness | Expected fields must match in actual; extra fields in actual silently allowed — avoids false negatives from Zotero ItemFields registry | ✓ Good |
+| TRANSLATOR_COMPAT guard on live tests | Keeps `bun test` fast by default; avoids flaky CI from network conditions | ✓ Good |
+| pendingWork array (not counter) for async drain | Allows drain loop to catch promises added by nested callbacks (selectItems → processDocuments) | ✓ Good |
+| doGet/doPost use callback pattern (not Promise return) | Matches Zotero's API surface for real translator compatibility | ✓ Good |
+| translation-bundle-patch.js for MISS-01 fix | Tracked file that applies getAllResponseHeaders fix at build time — survives rebuilds unlike direct edits to gitignored bundle | ✓ Good |
+| XPath attribute node bridge returns {nodeType:2, value} | Handles @attr XPath queries where linkedom returns no node — plain attr-like object satisfies translator expectations | ✓ Good |
 
 ## Evolution
 
@@ -88,4 +92,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-28 after Phase 7: Fix Translator Compat Bugs — all 5 live translator tests passing (Wikipedia, arXiv, reddit, DOI, NPR); VERIFY-01 complete*
+*Last updated: 2026-03-28 after v1.0 milestone — all phases complete, both packages publish-ready, 5/5 TRANSLATOR_COMPAT live tests passing*
