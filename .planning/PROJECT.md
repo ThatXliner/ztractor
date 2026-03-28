@@ -29,8 +29,8 @@ The sandbox is compatible enough that real Zotero translators pass Zotero's own 
 - ✓ Sandbox compatibility — full Zotero translator API surface (ZU.*, Zotero.Item, calling conventions) so real translators run correctly — Validated in Phase 3: Sandbox Advanced Flows
 - ✓ Passes Zotero's own translator test suite — Wikipedia, arXiv, reddit, NPR pass live; 212 pass 0 fail from repo root — Validated in Phase 4: Verification
 - ✓ `ztractor-node` package — Node.js wrapper with linkedom + XPath pre-wired — Validated in Phase 5: Node.js Package
-- [ ] npm publish — both packages published to npm public registry with proper exports, types, READMEs
-- [ ] README for both packages — install instructions + quick-start example
+- ✓ README for both packages — install instructions + quick-start example (arXiv URL, realistic output) — Validated in Phase 6: Publish
+- ⏳ npm publish — packages publish-ready (version 1.0.0, npm pack verified); awaiting `npm publish` by owner
 
 ### Out of Scope
 
