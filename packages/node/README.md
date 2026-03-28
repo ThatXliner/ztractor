@@ -21,17 +21,17 @@ bun add ztractor-node
 ```typescript
 import { extractMetadata } from 'ztractor-node';
 
-// Simple usage - just pass a URL
 const result = await extractMetadata({
-  url: 'https://www.nytimes.com/2024/01/15/technology/example.html',
+  url: 'https://arxiv.org/abs/2303.08774',
 });
 
-if (result.success && result.items) {
+if (result.success) {
   const item = result.items[0];
-  console.log(item.title);        // Article title
-  console.log(item.creators);     // Authors
-  console.log(item.date);         // Publication date
-  console.log(item.itemType);     // "newspaperArticle"
+  console.log(item.itemType);  // "preprint"
+  console.log(item.title);     // "GPT-4 Technical Report"
+  console.log(item.creators);  // [{ firstName: "Josh", lastName: "Achiam", creatorType: "author" }, ...]
+  console.log(item.date);      // "2024-03-04"
+  console.log(item.DOI);       // "10.48550/arXiv.2303.08774"
 }
 ```
 
@@ -61,7 +61,7 @@ The API is identical to the core `ztractor` package. See the [core package READM
 import { writeFile } from 'fs/promises';
 import { extractMetadata } from 'ztractor-node';
 
-const result = await extractMetadata('https://example.com/article');
+const result = await extractMetadata('https://arxiv.org/abs/2303.08774');
 
 if (result.success) {
   // Save metadata to file
@@ -83,6 +83,8 @@ This provides full XPath 1.0 support including:
 - Complex axes (following-sibling, ancestor, etc.)
 - Predicates and filters
 - Functions like `contains()`, `normalize-space()`
+
+**Note:** XPath support uses an xmldom bridge (XPath 1.0). XPath 2.0 is not supported.
 
 ### Translator Execution
 
