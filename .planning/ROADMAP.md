@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Sandbox Advanced Flows** - Implement multi-page fetch, HTTP sub-requests, item selection, and translator-to-translator delegation (completed 2026-03-27)
 - [x] **Phase 4: Verification** - Confirm real-world translators pass and existing tests hold (completed 2026-03-27)
 - [x] **Phase 5: Node.js Package** - Ship ztractor-node with linkedom + XPath pre-wired and matching core API (completed 2026-03-28)
-- [ ] **Phase 6: Publish** - Publish both packages to npm with correct metadata and READMEs
+- [x] **Phase 6: Publish** - Publish both packages to npm with correct metadata and READMEs (completed 2026-03-28)
 
 ## Phase Details
 
@@ -96,10 +96,10 @@ Plans:
   2. `npm install ztractor-node` installs the Node.js package with correct exports and TypeScript types
   3. Both package READMEs contain install instructions and a working quick-start code example
   4. Running the quick-start example from each README extracts real metadata from a live URL
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 Plans:
 - [x] 06-01-PLAN.md — Update READMEs with arXiv quick-start examples, bump ztractor-node to 1.0.0, fix workspace dep
-- [ ] 06-02-PLAN.md — Build both packages, run all tests, verify publish-readiness
+- [x] 06-02-PLAN.md — Build both packages, run all tests, verify publish-readiness
 
 ## Progress
 
@@ -113,4 +113,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 3. Sandbox Advanced Flows | 2/2 | Complete   | 2026-03-27 |
 | 4. Verification | 3/4 | In Progress|  |
 | 5. Node.js Package | 1/1 | Complete   | 2026-03-28 |
-| 6. Publish | 1/2 | In Progress|  |
+| 6. Publish | 2/2 | Complete   | 2026-03-28 |
