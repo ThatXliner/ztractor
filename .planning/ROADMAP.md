@@ -83,7 +83,9 @@ Plans:
   1. `import { extractMetadata } from 'ztractor-node'` works in Node.js 18+ without additional setup
   2. XPath queries used by translators (`document.evaluate()`) return correct results in the Node.js package
   3. All functions exported by `ztractor-node` match the same names and signatures as `ztractor` core
-**Plans**: TBD
+**Plans:** 1 plan
+Plans:
+- [ ] 05-01-PLAN.md — Add missing core exports, fix linkedom symlink, verify all node tests pass
 
 ### Phase 6: Publish
 **Goal**: Both packages are live on npm and a new user can install, run a quick-start example, and extract real metadata in under 5 minutes
@@ -107,5 +109,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 2. Sandbox Core API | 1/1 | Complete   | 2026-03-27 |
 | 3. Sandbox Advanced Flows | 2/2 | Complete   | 2026-03-27 |
 | 4. Verification | 3/4 | In Progress|  |
-| 5. Node.js Package | 0/TBD | Not started | - |
+| 5. Node.js Package | 0/1 | Not started | - |
 | 6. Publish | 0/TBD | Not started | - |
