@@ -101,10 +101,20 @@ Plans:
 - [x] 06-01-PLAN.md — Update READMEs with arXiv quick-start examples, bump ztractor-node to 1.0.0, fix workspace dep
 - [x] 06-02-PLAN.md — Build both packages, run all tests, verify publish-readiness
 
+### Phase 7: Fix Translator Compat Bugs
+**Goal:** `TRANSLATOR_COMPAT=1 bun test` passes all 5 live translator tests
+**Requirements:** VERIFY-01
+**Gap Closure:** Closes gaps from v1.0 audit (MISS-01, MISS-02, VERIFY-01 flow)
+
+Closes:
+- MISS-01: Add `getAllResponseHeaders()` to `Zotero.HTTP.request` xmlhttp object in `utilities-translate-bundle.ts` — affects arXiv and reddit TRANSLATOR_COMPAT tests
+- MISS-02: Fix XPath guard in `Zotero.Utilities.xpath()` — change `!Zotero.isIE || 'evaluate' in rootDoc` to `typeof rootDoc.evaluate === 'function'` — affects Wikipedia TRANSLATOR_COMPAT test
+- VERIFY-01: All 5 TRANSLATOR_COMPAT live tests pass (Wikipedia, arXiv, reddit, DOI, NPR)
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -114,3 +124,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 4. Verification | 3/4 | In Progress|  |
 | 5. Node.js Package | 1/1 | Complete   | 2026-03-28 |
 | 6. Publish | 2/2 | Complete   | 2026-03-28 |
+| 7. Fix Translator Compat Bugs | 0/? | Pending | |
