@@ -28,7 +28,7 @@ The sandbox is compatible enough that real Zotero translators pass Zotero's own 
 - ✓ Sandbox core API — Z alias, innerText global, bare request* functions, item.setExtra(), Zotero.isConnector/isServer/isBookmarklet flags, ZU.HTTP alias — Validated in Phase 2: Sandbox Core API
 - ✓ Sandbox compatibility — full Zotero translator API surface (ZU.*, Zotero.Item, calling conventions) so real translators run correctly — Validated in Phase 3: Sandbox Advanced Flows
 - ✓ Passes Zotero's own translator test suite — Wikipedia, arXiv, reddit, NPR pass live; 212 pass 0 fail from repo root — Validated in Phase 4: Verification
-- [ ] `ztractor-node` package — Node.js wrapper with linkedom + XPath pre-wired
+- ✓ `ztractor-node` package — Node.js wrapper with linkedom + XPath pre-wired — Validated in Phase 5: Node.js Package
 - [ ] npm publish — both packages published to npm public registry with proper exports, types, READMEs
 - [ ] README for both packages — install instructions + quick-start example
 
