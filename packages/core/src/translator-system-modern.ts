@@ -213,6 +213,35 @@ export class ZoteroItem {
     }
     this.extra = lines.join("\n");
   }
+
+  /**
+   * Add a tag to the item (Zotero API convenience method)
+   */
+  addTag(tag: string | { tag: string; type?: number }, type?: number): void {
+    if (typeof tag === "string") {
+      this.tags.push(type !== undefined ? { tag, type } : { tag });
+    } else {
+      this.tags.push(tag);
+    }
+  }
+
+  /**
+   * Add a note to the item (Zotero API convenience method)
+   */
+  addNote(note: string | { note: string }): void {
+    if (typeof note === "string") {
+      this.notes.push({ note });
+    } else {
+      this.notes.push(note);
+    }
+  }
+
+  /**
+   * Add a creator to the item (Zotero API convenience method)
+   */
+  addCreator(creator: { firstName?: string; lastName?: string; name?: string; creatorType: string }): void {
+    this.creators.push(creator);
+  }
 }
 
 /**

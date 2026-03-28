@@ -143,9 +143,14 @@ describe('findTranslators', () => {
     expect(nytTranslators[0].id).toBeTruthy();
   });
 
-  test('returns empty array for unknown sites', async () => {
+  test('returns only generic translators for unknown sites', async () => {
+    // Generic translators (unAPI, COinS, Embedded Metadata, DOI) have empty targets
+    // and match any URL, so even unknown sites return them
     const translators = await findTranslators('https://unknown-site-xyz-12345.com/');
-    expect(translators.length).toBe(0);
+    // All returned translators should be generic (no site-specific target pattern)
+    for (const t of translators) {
+      expect(t.target).toBe('');
+    }
   });
 
   test('returns translator metadata', async () => {
