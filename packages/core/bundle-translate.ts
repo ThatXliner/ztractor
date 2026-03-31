@@ -86,11 +86,12 @@ async function main() {
 	// Generate output
 	let output = generateTranslateBundle(
 		[...srcFiles, ...utilFiles]
-			.toSorted(
-				(a, b) =>
-					CONCAT_ORDER.findIndex((x) => a[0].includes(x)) -
-					CONCAT_ORDER.findIndex((x) => b[0].includes(x)),
-			)
+			.toSorted((a, b) => {
+				const idxA = CONCAT_ORDER.findIndex((x) => a[0].includes(x));
+				const idxB = CONCAT_ORDER.findIndex((x) => b[0].includes(x));
+				// Unlisted files go to the end
+				return (idxA === -1 ? Infinity : idxA) - (idxB === -1 ? Infinity : idxB);
+			})
 			.map((x) => unwrapTopLevelIIFE(x[1]))
 			.join("\n") +
 			"\n" +
