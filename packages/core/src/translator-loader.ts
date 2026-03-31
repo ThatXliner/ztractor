@@ -73,7 +73,7 @@ export function findMatchingTranslators(
 ): Translator[] {
 	const matches = translators
 		.filter((t) => matchesTarget(url, t.metadata.target))
-		.sort((a, b) => b.metadata.priority - a.metadata.priority);
+		.sort((a, b) => a.metadata.priority - b.metadata.priority);
 
 	return matches;
 }

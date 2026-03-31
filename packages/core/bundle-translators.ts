@@ -127,7 +127,7 @@ async function main() {
 		console.log(`   ${typeName}: ${count}`);
 	}
 
-	translators.sort((a, b) => b.metadata.priority - a.metadata.priority);
+	translators.sort((a, b) => a.metadata.priority - b.metadata.priority);
 
 	// Generate the registry file with bundled code
 	let registryCode = `/**

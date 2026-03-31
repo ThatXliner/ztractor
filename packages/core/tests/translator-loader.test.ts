@@ -243,19 +243,19 @@ describe("findMatchingTranslators", () => {
 		);
 
 		expect(matches.length).toBe(2);
-		expect(matches[0].metadata.label).toBe("Example.com Articles"); // Higher priority first
-		expect(matches[1].metadata.label).toBe("Example.com");
+		expect(matches[0].metadata.label).toBe("Example.com"); // Lower number = higher priority
+		expect(matches[1].metadata.label).toBe("Example.com Articles");
 	});
 
-	test("sorts by priority (descending)", () => {
+	test("sorts by priority (ascending, lower number = higher priority)", () => {
 		const matches = findMatchingTranslators(
 			"https://example.com/",
 			translators,
 		);
 
-		// Both match, but priority 200 should come first
+		// Both match, lower priority number should come first
 		if (matches.length > 1) {
-			expect(matches[0].metadata.priority).toBeGreaterThanOrEqual(
+			expect(matches[0].metadata.priority).toBeLessThanOrEqual(
 				matches[1].metadata.priority,
 			);
 		}
