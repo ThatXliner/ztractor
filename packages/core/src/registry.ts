@@ -49,21 +49,26 @@ export class BundledRegistry extends TranslatorRegistry {
 	}
 }
 
-export class HTTPRegistry implements TranslatorRegistry {
+export class HTTPRegistry extends TranslatorRegistry {
 	fetchFunction: (url: string) => Promise<Response>;
 	infoRe = /^\s*{[\S\s]*?}\s*?[\r\n]/;
 	constructor(fetchFunction: (url: string) => Promise<Response>) {
+		super();
 		this.fetchFunction = fetchFunction;
 	}
 	// TODO: cache
 	async getTranslatorCode(id: string): Promise<string | undefined> {
-		let code;
-		let url = `${ZOTERO_CONFIG.REPOSITORY_URL}code/${id}`;
-		let xmlhttp = await this.fetchFunction(url);
-		code = await xmlhttp.text();
+		const url = `${ZOTERO_CONFIG.REPOSITORY_URL}code/${id}`;
+		const response = await this.fetchFunction(url);
+		if (!response.ok) {
+			throw new Error(
+				`Repo: HTTP ${response.status} fetching translator ${id}`,
+			);
+		}
+		const code = await response.text();
 
 		// validation
-		var m = this.infoRe.exec(code);
+		const m = this.infoRe.exec(code);
 		if (!m) {
 			throw new Error(
 				"Repo: Invalid or missing translator metadata JSON object for " + id,
