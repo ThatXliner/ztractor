@@ -27,7 +27,8 @@
 	},
 	"homepage": "https://github.com/ThatXliner/ztractor#readme",
 	"files": [
-		"dist"
+		"dist",
+		"src"
 	],
 	"module": "./dist/index.js",
 	"types": "./dist/index.d.ts",
@@ -36,6 +37,12 @@
 			"import": {
 				"types": "./dist/index.d.ts",
 				"default": "./dist/index.js"
+			}
+		},
+		"./src": {
+			"import": {
+				"types": "./src/index.ts",
+				"default": "./src/index.ts"
 			}
 		},
 		"./package.json": "./package.json"
