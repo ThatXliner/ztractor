@@ -71,6 +71,7 @@ function parseHTMLDocument(
 		dependencies?.DOMParser ?? (globalThis as any).DOMParser;
 	const doc = new Parser().parseFromString(html, "text/html");
 	// Attach URL metadata for translators that read document.URL / location.href / location.search
+	let needsLocationProxy = false;
 	try {
 		const parsedURL = new URL(url);
 		const locationLike = {
@@ -85,15 +86,51 @@ function parseHTMLDocument(
 			origin: parsedURL.origin,
 			toString: () => url,
 		};
-		Object.defineProperty(doc, "URL", { value: url, configurable: true });
-		Object.defineProperty(doc, "documentURI", {
-			value: url,
-			configurable: true,
-		});
-		Object.defineProperty(doc, "location", {
-			value: locationLike,
-			configurable: true,
-		});
+		try {
+			Object.defineProperty(doc, "URL", { value: url, configurable: true });
+		} catch (_e) {}
+		try {
+			Object.defineProperty(doc, "documentURI", {
+				value: url,
+				configurable: true,
+			});
+		} catch (_e) {}
+		try {
+			Object.defineProperty(doc, "location", {
+				value: locationLike,
+				configurable: true,
+			});
+		} catch (_e) {
+			needsLocationProxy = true;
+		}
+		if (needsLocationProxy) {
+			let proxy: Document;
+			proxy = new Proxy(doc, {
+				get(target, prop) {
+					if (prop === "URL" || prop === "documentURI") return url;
+					if (prop === "location") return locationLike;
+					if (prop === "evaluate") {
+						return (
+							expression: string,
+							contextNode: Node,
+							resolver?: XPathNSResolver | null,
+							type?: number,
+							result?: XPathResult | null,
+						) =>
+							target.evaluate(
+								expression,
+								contextNode === proxy ? target : contextNode,
+								resolver ?? null,
+								type ?? 0,
+								result ?? null,
+							);
+					}
+					const value = Reflect.get(target, prop, target);
+					return typeof value === "function" ? value.bind(target) : value;
+				},
+			});
+			return proxy;
+		}
 	} catch (_e) {
 		// read-only in some environments — ignore
 	}

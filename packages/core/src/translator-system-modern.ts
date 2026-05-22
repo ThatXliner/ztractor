@@ -11,7 +11,7 @@
  */
 
 import type { ItemType, Translator } from './types';
-import { Zotero } from './utilities-translate-bundle';
+import { Zotero as ZoteroCore } from './utilities-translate-bundle';
 
 // ============================================================================
 // SANDBOX MANAGER
@@ -244,6 +244,59 @@ export class ZoteroItem {
 	}
 }
 
+function isDomLikeObject(value: Record<string, any>): boolean {
+	if (value.window === value) return true;
+	if (typeof value.nodeType === 'number' && typeof value.nodeName === 'string') {
+		return true;
+	}
+
+	const constructorName = value.constructor?.name;
+	return (
+		constructorName === 'NodeList' ||
+		constructorName === 'HTMLCollection' ||
+		constructorName === 'NamedNodeMap'
+	);
+}
+
+function sanitizeTranslatorValue(value: any, seen = new WeakSet<object>()): any {
+	if (value === null) return null;
+
+	const valueType = typeof value;
+	if (valueType === 'string' || valueType === 'number' || valueType === 'boolean') {
+		return value;
+	}
+	if (valueType === 'bigint') return value.toString();
+	if (valueType === 'undefined' || valueType === 'function' || valueType === 'symbol') {
+		return undefined;
+	}
+
+	if (value instanceof Date) return value.toISOString();
+	if (value instanceof URL) return value.href;
+
+	if (isDomLikeObject(value)) return undefined;
+	if (seen.has(value)) return undefined;
+	seen.add(value);
+
+	if (Array.isArray(value)) {
+		return value
+			.map((entry) => sanitizeTranslatorValue(entry, seen))
+			.filter((entry) => entry !== undefined);
+	}
+
+	const clone: Record<string, any> = {};
+	for (const key of Object.keys(value)) {
+		const sanitized = sanitizeTranslatorValue(value[key], seen);
+		if (sanitized !== undefined) clone[key] = sanitized;
+	}
+
+	return clone;
+}
+
+function sanitizeTranslatorItem(item: ZoteroItem): ZoteroItem {
+	const sanitized = sanitizeTranslatorValue(item) as ZoteroItem | undefined;
+	return sanitized ?? { itemType: item.itemType };
+}
+
 /**
  * Zotero Utilities (ZU) - Imported from original Zotero code
  *
@@ -276,11 +329,11 @@ function createZoteroUtilities() {
 	};
 
 	// Create the utilities instance (has HTTP methods like request, doGet, etc.)
-	const translateUtils = new (Zotero.Utilities as any).Translate(mockTranslate);
+	const translateUtils = new (ZoteroCore.Utilities as any).Translate(mockTranslate);
 
 	// Mix in base Zotero.Utilities methods (cleanISBN, unescapeHTML, cleanDOI, etc.)
 	// as own enumerable properties so object spread picks them up
-	const baseUtils = Zotero.Utilities as any;
+	const baseUtils = ZoteroCore.Utilities as any;
 	for (const key of Object.getOwnPropertyNames(baseUtils)) {
 		if (!Object.prototype.hasOwnProperty.call(translateUtils, key) && typeof baseUtils[key] === 'function') {
 			translateUtils[key] = baseUtils[key].bind(baseUtils);
@@ -290,6 +343,59 @@ function createZoteroUtilities() {
 	// cleanTitle: collapse whitespace and strip trailing periods
 	translateUtils.cleanTitle = function(title: string): string {
 		return title.replace(/\s+/g, ' ').trim().replace(/\.+$/, '');
+	};
+
+	const _baseTrim = (translateUtils.trim ?? baseUtils.trim)?.bind(translateUtils);
+	translateUtils.trim = function(str: unknown): string {
+		if (str == null) return '';
+		return _baseTrim ? _baseTrim(String(str)) : String(str).trim();
+	};
+
+	const _baseTrimInternal = (translateUtils.trimInternal ?? baseUtils.trimInternal)?.bind(translateUtils);
+	translateUtils.trimInternal = function(str: unknown): string {
+		if (str == null) return '';
+		const value = String(str);
+		return _baseTrimInternal
+			? _baseTrimInternal(value)
+			: value.replace(/\s+/g, ' ').trim();
+	};
+
+	const knownItemTypes = new Set([
+		'artwork', 'audioRecording', 'bill', 'blogPost', 'book', 'bookSection',
+		'case', 'computerProgram', 'conferencePaper', 'dictionaryEntry',
+		'document', 'email', 'encyclopediaArticle', 'film', 'forumPost',
+		'hearing', 'instantMessage', 'interview', 'journalArticle', 'letter',
+		'magazineArticle', 'manuscript', 'map', 'newspaperArticle', 'patent',
+		'podcast', 'presentation', 'radioBroadcast', 'report', 'software',
+		'statute', 'thesis', 'tvBroadcast', 'videoRecording', 'webpage',
+		'dataset', 'preprint',
+	]);
+
+	const _baseItemTypeExists = (translateUtils.itemTypeExists ?? baseUtils.itemTypeExists)?.bind(translateUtils);
+	translateUtils.itemTypeExists = function(type: string): boolean {
+		try {
+			const result = _baseItemTypeExists?.(type);
+			if (result !== undefined) return !!result;
+		} catch (_e) {}
+		return knownItemTypes.has(type);
+	};
+
+	const _baseFieldIsValidForType = (translateUtils.fieldIsValidForType ?? baseUtils.fieldIsValidForType)?.bind(translateUtils);
+	translateUtils.fieldIsValidForType = function(field: string, type: string): boolean {
+		try {
+			const result = _baseFieldIsValidForType?.(field, type);
+			if (result !== undefined) return !!result;
+		} catch (_e) {}
+		return !!field && knownItemTypes.has(type);
+	};
+
+	const _baseGetCreatorsForType = (translateUtils.getCreatorsForType ?? baseUtils.getCreatorsForType)?.bind(translateUtils);
+	translateUtils.getCreatorsForType = function(type: string): string[] {
+		try {
+			const result = _baseGetCreatorsForType?.(type);
+			if (Array.isArray(result) && result.length) return result;
+		} catch (_e) {}
+		return type === 'attachment' || type === 'note' ? [] : ['author', 'editor', 'translator', 'contributor'];
 	};
 
 	// cleanISBN: strip hyphens/spaces; return null (not false) for invalid, "" for empty
@@ -583,7 +689,13 @@ export class TranslatorExecutor {
 		url: string
 	): Promise<ItemType | false | null> {
 		try {
-			const sandbox = this.createSandbox(doc, url);
+			const pendingWork: Promise<any>[] = [];
+			let doneCalled = false;
+			let doneValue: ItemType | false | null | undefined;
+			const sandbox = this.createSandbox(doc, url, undefined, pendingWork, (value) => {
+				doneCalled = true;
+				doneValue = value as ItemType | false | null | undefined;
+			});
 
 			// Execute translator code using Function constructor
 			const fn = new Function(
@@ -612,7 +724,7 @@ export class TranslatorExecutor {
 			);
 
 			const dependencies = this.options.dependencies;
-			const result = fn(
+			let result = fn(
 				doc,
 				url,
 				sandbox.Zotero,
@@ -629,7 +741,20 @@ export class TranslatorExecutor {
 				makeSafeDOMParser(dependencies?.DOMParser ?? (globalThis as any).DOMParser)
 			);
 
-			return result;
+			if (result && typeof result.then === 'function') {
+				result = await result;
+			}
+
+			let prev = -1;
+			while (pendingWork.length !== prev) {
+				prev = pendingWork.length;
+				await Promise.all(pendingWork);
+			}
+
+			if (result !== undefined && result !== null) {
+				return result;
+			}
+			return doneCalled ? (doneValue ?? null) : null;
 		} catch (e) {
 			console.error(`Error in detectWeb for ${translator.metadata.label}:`, e);
 			return null;
@@ -676,7 +801,7 @@ export class TranslatorExecutor {
 						}
 					}
 
-					items.push(item);
+					items.push(sanitizeTranslatorItem(item));
 				}, pendingWork);
 
 				// Execute translator code
@@ -754,7 +879,8 @@ export class TranslatorExecutor {
 		doc: Document,
 		url: string,
 		onItemComplete?: (item: ZoteroItem) => void,
-		pendingWork?: Promise<any>[]
+		pendingWork?: Promise<any>[],
+		onDone?: (value?: any) => void
 	) {
 		const dependencies = this.options.dependencies;
 
@@ -859,9 +985,23 @@ export class TranslatorExecutor {
 			if (pendingWork) pendingWork.push(p);
 		};
 
+		const RDFSandbox = ZoteroCore.Translate?.IO?._RDFSandbox;
+		const RDFStore = ZoteroCore.RDF?.AJAW?.IndexedFormula;
+		const rdf = RDFSandbox && RDFStore
+			? new RDFSandbox(new RDFStore())
+			: ZoteroCore.RDF;
+
+		const CollectionClass = class {
+			[key: string]: any;
+			complete(): void {}
+		};
+
 		const Zotero = {
+			...ZoteroCore,
 			Item: ItemClass,
+			Collection: CollectionClass,
 			Utilities: wrappedZU,
+			RDF: rdf,
 			isConnector: false,
 			isServer: false,
 			isBookmarklet: false,
@@ -900,7 +1040,10 @@ export class TranslatorExecutor {
 			},
 
 			// No-op compatibility stubs
-			done() {},
+			done(value?: any) {
+				if (onDone) onDone(value);
+			},
+			setProgress() {},
 			wait() {},
 		};
 
@@ -940,18 +1083,24 @@ export class TranslatorExecutor {
 				handlers[event] = handler;
 			},
 
-			async getTranslatorObject(callback: Function) {
+			getTranslatorObject(callback?: Function) {
+				const emit = (translatorObject: Record<string, any>) => {
+					if (typeof callback === 'function') {
+						try { callback(translatorObject); } catch (_e) {}
+					}
+					return translatorObject;
+				};
+
+				const work = (async () => {
 				if (!translatorId || !executor.options.getTranslatorById) {
-					try { callback({}); } catch (_e) {}
-					return;
+					return emit({});
 				}
 
 				try {
 					const embeddedTranslator = await executor.options.getTranslatorById(translatorId);
 					if (!embeddedTranslator) {
 						console.error(`Embedded translator ${translatorId} not found`);
-						try { callback({}); } catch (_e) {}
-						return;
+						return emit({});
 					}
 
 					// Create sandbox for embedded translator
@@ -960,7 +1109,11 @@ export class TranslatorExecutor {
 							// Attach no-op complete() so itemDone handlers can safely call item.complete()
 							// (matches Zotero translate.js line 393-395 behavior)
 							if (typeof item.complete !== 'function') item.complete = () => {};
-							handlers.itemDone(null, item);
+							try {
+								handlers.itemDone(null, item);
+							} catch (e) {
+								console.error('Error in embedded itemDone handler:', e);
+							}
 						}
 						if (onItemComplete) {
 							onItemComplete(item);
@@ -972,7 +1125,28 @@ export class TranslatorExecutor {
 						'Zotero', 'ZU', 'Z', 'attr', 'text', 'innerText',
 						'request', 'requestText', 'requestJSON', 'requestDocument',
 						'XPathResult', 'DOMParser',
-						embeddedTranslator.code + '\nreturn { detectWeb: (typeof detectWeb !== "undefined" ? detectWeb : undefined), doWeb: (typeof doWeb !== "undefined" ? doWeb : undefined) };'
+						`
+							${embeddedTranslator.code}
+
+							const translatorObject =
+								typeof exports !== "undefined" && exports && typeof exports === "object"
+									? exports
+									: {};
+							Object.assign(translatorObject, {
+								Zotero,
+								detectWeb: (typeof detectWeb !== "undefined" ? detectWeb : undefined),
+								doWeb: (typeof doWeb !== "undefined" ? doWeb : undefined),
+								detectImport: (typeof detectImport !== "undefined" ? detectImport : undefined),
+								doImport: (typeof doImport !== "undefined" ? doImport : undefined),
+								detectSearch: (typeof detectSearch !== "undefined" ? detectSearch : undefined),
+								doSearch: (typeof doSearch !== "undefined" ? doSearch : undefined),
+								detectExport: (typeof detectExport !== "undefined" ? detectExport : undefined),
+								doExport: (typeof doExport !== "undefined" ? doExport : undefined),
+								getNodes: (typeof getNodes !== "undefined" ? getNodes : undefined),
+								detectType: (typeof detectType !== "undefined" ? detectType : undefined),
+							});
+							return translatorObject;
+						`
 					);
 
 					const embeddedDeps = executor.options.dependencies;
@@ -987,11 +1161,14 @@ export class TranslatorExecutor {
 						makeSafeDOMParser(embeddedDeps?.DOMParser ?? (globalThis as any).DOMParser)
 					);
 
-					try { callback(transObj); } catch (_e) {}
+					return emit(transObj);
 				} catch (e) {
 					console.error('Error in getTranslatorObject:', e);
-					try { callback({}); } catch (_e) {}
+					return emit({});
 				}
+				})();
+				if (pendingWork) pendingWork.push(work);
+				return work;
 			},
 
 			async translate() {
@@ -1006,7 +1183,11 @@ export class TranslatorExecutor {
 									// Attach no-op complete() so itemDone handlers can safely call item.complete()
 									// (matches Zotero translate.js line 393-395 behavior)
 									if (typeof item.complete !== 'function') item.complete = () => {};
-									handlers.itemDone(null, item);
+									try {
+										handlers.itemDone(null, item);
+									} catch (e) {
+										console.error('Error in embedded itemDone handler:', e);
+									}
 								}
 								if (onItemComplete) onItemComplete(item);
 							}

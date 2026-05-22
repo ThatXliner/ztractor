@@ -99,23 +99,19 @@ async function main() {
 			continue;
 		}
 
-		// Include all web translators: type 4 (web only) and combined types like 12 (web+import)
-		// Use bitflag check so translatorType 12 (= 8|4) is included
-		if ((metadata.translatorType & 4) !== 0) {
-			const jsCode = extractCodeWithoutMetadata(code);
-			translators.push({
-				metadata,
-				code: jsCode,
-			});
-			totalCodeSize += jsCode.length;
-		}
+		const jsCode = extractCodeWithoutMetadata(code);
+		translators.push({
+			metadata,
+			code: jsCode,
+		});
+		totalCodeSize += jsCode.length;
 
 		translatorsByType[metadata.translatorType] =
 			(translatorsByType[metadata.translatorType] || 0) + 1;
 	}
 
-	console.log(`✅ Parsed ${translators.length} web translators (type 4 and combined types)`);
-	console.log(`⏭️  Skipped ${skipped} files (invalid or non-web)`);
+	console.log(`✅ Parsed ${translators.length} translators`);
+	console.log(`⏭️  Skipped ${skipped} files (invalid metadata)`);
 	console.log(
 		`📏 Total translator code size: ${(totalCodeSize / 1024 / 1024).toFixed(2)} MB`,
 	);
@@ -133,7 +129,7 @@ async function main() {
 	let registryCode = `/**
  * Auto-generated translator registry with bundled code
  * Generated at: ${new Date().toISOString()}
- * Total web translators: ${translators.length}
+ * Total translators: ${translators.length}
  *
  * WARNING: This is a large auto-generated file (~${(totalCodeSize / 1024 / 1024).toFixed(1)} MB)
  * Do not edit manually!
