@@ -103,8 +103,8 @@ async function main() {
 	// These code paths are guarded by runtime checks (Zotero.isNode, typeof process)
 	// and never execute in browser/ESM builds.
 	output = output.replace(
-		/\brequire\(("(?:\.\/[^"]+|jsdom)")\)/g,
-		`(eval('require'))($1)`,
+		/\brequire\((['"])(\.\/[^'"]+|jsdom)\1\)/g,
+		(_match, quote, specifier) => `(eval('require'))(${quote}${specifier}${quote})`,
 	);
 
 	writeFileSync(outputFile, output, "utf-8");
