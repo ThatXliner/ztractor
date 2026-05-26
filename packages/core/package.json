@@ -48,7 +48,7 @@
 		"./package.json": "./package.json"
 	},
 	"scripts": {
-		"build": "bun bundle-translate.ts && bun bundle-translators.ts && bunx bunup --exports -t browser --external jsdom,./xregexp-all",
+		"build": "bun bundle-translate.ts && bun bundle-translators.ts && bunx bunup --no-exports -t browser --external jsdom,./xregexp-all",
 		"build:translate": "bun bundle-translate.ts",
 		"build:translators": "bun bundle-translators.ts",
 		"test": "bun test",
