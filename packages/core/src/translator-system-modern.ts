@@ -880,7 +880,8 @@ export class TranslatorExecutor {
 		url: string,
 		onItemComplete?: (item: ZoteroItem) => void,
 		pendingWork?: Promise<any>[],
-		onDone?: (value?: any) => void
+		onDone?: (value?: any) => void,
+		inputText?: string
 	) {
 		const dependencies = this.options.dependencies;
 
@@ -995,6 +996,27 @@ export class TranslatorExecutor {
 			[key: string]: any;
 			complete(): void {}
 		};
+		let readOffset = 0;
+		const read = (length?: number): string | false => {
+			if (inputText === undefined) return false;
+			if (readOffset >= inputText.length) return false;
+			if (typeof length === 'number') {
+				const chunk = inputText.slice(readOffset, readOffset + length);
+				readOffset += chunk.length;
+				return chunk;
+			}
+
+			const nextNewline = inputText.indexOf('\n', readOffset);
+			if (nextNewline === -1) {
+				const line = inputText.slice(readOffset);
+				readOffset = inputText.length;
+				return line.replace(/\r$/, '');
+			}
+
+			const line = inputText.slice(readOffset, nextNewline);
+			readOffset = nextNewline + 1;
+			return line.replace(/\r$/, '');
+		};
 
 		const Zotero = {
 			...ZoteroCore,
@@ -1006,6 +1028,7 @@ export class TranslatorExecutor {
 			isServer: false,
 			isBookmarklet: false,
 			parentTranslator: null,
+			read,
 
 			/**
 			 * Select items for 'multiple' type.
@@ -1027,7 +1050,7 @@ export class TranslatorExecutor {
 			 * Load embedded translator
 			 */
 			loadTranslator: (type: string) => {
-				return this.createTranslatorLoader(doc, url, onItemComplete, pendingWork);
+				return this.createTranslatorLoader(type, doc, url, onItemComplete, pendingWork);
 			},
 
 			/**
@@ -1060,6 +1083,7 @@ export class TranslatorExecutor {
 	 * Create a translator loader for embedded translators
 	 */
 	private createTranslatorLoader(
+		type: string,
 		doc: Document,
 		url: string,
 		onItemComplete?: (item: ZoteroItem) => void,
@@ -1068,6 +1092,7 @@ export class TranslatorExecutor {
 		const executor = this;	// Capture before returning object literal
 		let translatorId: string | null = null;
 		let translatorDoc: Document = doc;
+		let translatorString = '';
 		const handlers: Record<string, Function> = {};
 
 		return {
@@ -1077,6 +1102,10 @@ export class TranslatorExecutor {
 
 			setDocument(newDoc: Document) {
 				translatorDoc = newDoc;
+			},
+
+			setString(value: string) {
+				translatorString = String(value ?? '');
 			},
 
 			setHandler(event: string, handler: Function) {
@@ -1171,17 +1200,16 @@ export class TranslatorExecutor {
 				return work;
 			},
 
-			async translate() {
-				if (!translatorId || !executor.options.getTranslatorById) return;
-				try {
-					const embeddedTranslator = await executor.options.getTranslatorById(translatorId);
-					if (!embeddedTranslator) return;
-					const p = executor.doWeb(embeddedTranslator, translatorDoc, url)
-						.then(subItems => {
-							for (const item of subItems) {
+			translate() {
+				const work = (async () => {
+					if (!translatorId || !executor.options.getTranslatorById) return [];
+					try {
+						const embeddedTranslator = await executor.options.getTranslatorById(translatorId);
+						if (!embeddedTranslator) return [];
+						if (type === 'import') {
+							const importedItems: ZoteroItem[] = [];
+							const importSandbox = executor.createSandbox(translatorDoc, url, (item) => {
 								if (handlers.itemDone) {
-									// Attach no-op complete() so itemDone handlers can safely call item.complete()
-									// (matches Zotero translate.js line 393-395 behavior)
 									if (typeof item.complete !== 'function') item.complete = () => {};
 									try {
 										handlers.itemDone(null, item);
@@ -1189,19 +1217,65 @@ export class TranslatorExecutor {
 										console.error('Error in embedded itemDone handler:', e);
 									}
 								}
+								importedItems.push(item);
 								if (onItemComplete) onItemComplete(item);
+							}, pendingWork, undefined, translatorString);
+							importSandbox.Zotero.parentTranslator = {};
+
+							const fn = new Function(
+								'Zotero', 'ZU', 'Z', 'attr', 'text', 'innerText',
+								'request', 'requestText', 'requestJSON', 'requestDocument',
+								'XPathResult', 'DOMParser',
+								`
+									${embeddedTranslator.code}
+									return {
+										detectImport: (typeof detectImport !== "undefined" ? detectImport : undefined),
+										doImport: (typeof doImport !== "undefined" ? doImport : undefined),
+									};
+								`
+							);
+							const embeddedDeps = executor.options.dependencies;
+							const transObj = fn(
+								importSandbox.Zotero, importSandbox.ZU, importSandbox.Zotero,
+								attr, text, innerText,
+								importSandbox.ZU.request?.bind(importSandbox.ZU),
+								importSandbox.ZU.requestText?.bind(importSandbox.ZU),
+								importSandbox.ZU.requestJSON?.bind(importSandbox.ZU),
+								importSandbox.ZU.requestDocument?.bind(importSandbox.ZU),
+								XPathResult,
+								makeSafeDOMParser(embeddedDeps?.DOMParser ?? (globalThis as any).DOMParser)
+							);
+
+							let result;
+							if (typeof transObj.doImport === 'function') {
+								result = transObj.doImport();
+								if (result && typeof result.then === 'function') await result;
 							}
-						});
-					if (pendingWork) pendingWork.push(p);
-					// Note: we both push to pendingWork (so the outer doWeb drain loop
-					// waits for completion) AND await here (so translate() callers who
-					// await the result get correct sequencing). The double-track is
-					// intentional — pendingWork handles fire-and-forget callers,
-					// await handles callers who chain on translate().
-					await p;
-				} catch (e) {
-					console.error('Error in translate() for embedded translator:', e);
-				}
+							return importedItems;
+						}
+
+						const subItems = await executor.doWeb(embeddedTranslator, translatorDoc, url);
+						for (const item of subItems) {
+							if (handlers.itemDone) {
+								// Attach no-op complete() so itemDone handlers can safely call item.complete()
+								// (matches Zotero translate.js line 393-395 behavior)
+								if (typeof item.complete !== 'function') item.complete = () => {};
+								try {
+									handlers.itemDone(null, item);
+								} catch (e) {
+									console.error('Error in embedded itemDone handler:', e);
+								}
+							}
+							if (onItemComplete) onItemComplete(item);
+						}
+						return subItems;
+					} catch (e) {
+						console.error('Error in translate() for embedded translator:', e);
+						return [];
+					}
+				})();
+				if (pendingWork) pendingWork.push(work);
+				return work;
 			},
 		};
 	}

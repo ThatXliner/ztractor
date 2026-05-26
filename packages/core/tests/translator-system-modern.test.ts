@@ -911,6 +911,84 @@ describe('loadTranslator', () => {
     expect(items[0].title).toBe('Embedded Result');
   });
 
+  test('translate() executes import translator strings', async () => {
+    const importTranslator = {
+      metadata: { label: 'Mini Import', translatorID: 'import-id', target: '', priority: 100, translatorType: 1, lastUpdated: '' },
+      code: `
+        function doImport() {
+          var title = 'missing';
+          var line;
+          while ((line = Zotero.read()) !== false) {
+            if (line.indexOf('TI  - ') === 0) title = line.slice(6);
+          }
+          var item = new Zotero.Item('journalArticle');
+          item.title = title;
+          item.complete();
+        }
+      `,
+    };
+    const executor = new TranslatorExecutor({
+      getTranslatorById: async (id) => id === 'import-id' ? importTranslator : null,
+    });
+
+    const parentCode = `
+      async function doWeb(doc, url) {
+        var translator = Zotero.loadTranslator('import');
+        translator.setTranslator('import-id');
+        translator.setString('TY  - JOUR\\nTI  - Import Result\\nER  -');
+        translator.setHandler('itemDone', function(obj, item) {
+          item.title = item.title + ' via handler';
+          item.complete();
+        });
+        await translator.translate();
+      }
+    `;
+    const parentTranslator = makeTranslator(parentCode);
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString('<html><body></body></html>', 'text/html');
+    const items = await executor.doWeb(parentTranslator, doc, 'http://example.com/article');
+
+    expect(items).toHaveLength(1);
+    expect(items[0].title).toBe('Import Result via handler');
+  });
+
+  test('translate() tracks fire-and-forget import translators as pending work', async () => {
+    const importTranslator = {
+      metadata: { label: 'Mini Import', translatorID: 'import-id', target: '', priority: 100, translatorType: 1, lastUpdated: '' },
+      code: `
+        async function doImport() {
+          await Promise.resolve();
+          var line = Zotero.read();
+          var item = new Zotero.Item('journalArticle');
+          item.title = line.replace('TI  - ', '');
+          item.complete();
+        }
+      `,
+    };
+    const executor = new TranslatorExecutor({
+      getTranslatorById: async (id) => id === 'import-id' ? importTranslator : null,
+    });
+
+    const parentCode = `
+      function doWeb(doc, url) {
+        var translator = Zotero.loadTranslator('import');
+        translator.setTranslator('import-id');
+        translator.setString('TI  - Async Import Result');
+        translator.setHandler('itemDone', function(obj, item) { item.complete(); });
+        translator.translate();
+      }
+    `;
+    const parentTranslator = makeTranslator(parentCode);
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString('<html><body></body></html>', 'text/html');
+    const items = await executor.doWeb(parentTranslator, doc, 'http://example.com/article');
+
+    expect(items).toHaveLength(1);
+    expect(items[0].title).toBe('Async Import Result');
+  });
+
   test('translate() items also arrive in parent doWeb items array via onItemComplete', async () => {
     const embeddedTranslator = makeEmbeddedTranslator(embeddedCode);
     const executor = new TranslatorExecutor({
