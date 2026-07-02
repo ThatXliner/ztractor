@@ -1,7 +1,7 @@
 {
 	"version": 1,
 	"upstreamRoot": "translate",
-	"outputRoot": "src/generated/zotero-runtime",
+	"outputRoot": "src/generated/zotero-runtime/patched",
 	"mods": [
 		{
 			"id": "adapt-http-host",

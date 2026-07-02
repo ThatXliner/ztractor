@@ -1,0 +1,35 @@
+{
+  "generatedAt": "2026-07-02T18:08:36.918Z",
+  "mode": "write",
+  "upstreamRoot": "/Users/me/Developer/ztractor/packages/core/translate",
+  "upstreamCommit": "d08300c2c01a4d6ef325f05cbefc6c138a99f811",
+  "outputRoot": "/Users/me/Developer/ztractor/packages/core/src/generated/zotero-runtime/patched",
+  "mods": [
+    {
+      "id": "adapt-http-host",
+      "description": "Route Zotero HTTP and document loading hooks through the Ztractor host adapter.",
+      "files": [
+        {
+          "filePath": "src/http.js",
+          "changed": true,
+          "notes": [
+            "Replaced upstream not-implemented HTTP hooks with calls into Zotero.__ztractorHost."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "adapt-repo-registry",
+      "description": "Route Zotero repository lookups through the Ztractor translator registry when present.",
+      "files": [
+        {
+          "filePath": "src/repo.js",
+          "changed": true,
+          "notes": [
+            "Added a host registry path while preserving Zotero's upstream HTTP repository fallback."
+          ]
+        }
+      ]
+    }
+  ]
+}
