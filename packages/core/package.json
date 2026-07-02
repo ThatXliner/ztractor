@@ -45,6 +45,7 @@
         "build:zotero-runtime": "bun scripts/build-zotero-runtime.ts",
         "codemods:check": "bun codemods/run-codemods.ts --check",
         "codemods:write": "bun codemods/run-codemods.ts --write",
+        "upgrade:zotero": "bun scripts/upgrade-zotero.ts",
         "test": "bun test"
     },
     "devDependencies": {
