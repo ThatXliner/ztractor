@@ -29,6 +29,39 @@
           ]
         }
       ]
+    },
+    {
+      "id": "adapt-dom-parser",
+      "description": "Replace upstream Node-only jsdom parsing branches with host-provided DOMParser.",
+      "files": [
+        {
+          "filePath": "modules/utilities/utilities.js",
+          "changed": true,
+          "notes": [
+            "Removed jsdom requires from Node parsing paths so the browser runtime bundle stays dependency-free."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "adapt-xregexp-runtime",
+      "description": "Make upstream XRegExp browser bundle safe inside the generated ESM runtime.",
+      "files": [
+        {
+          "filePath": "modules/utilities/xregexp-all.js",
+          "changed": true,
+          "notes": [
+            "Renamed Browserify-local require identifiers so downstream bundlers do not resolve internal XRegExp modules."
+          ]
+        },
+        {
+          "filePath": "modules/utilities/utilities.js",
+          "changed": true,
+          "notes": [
+            "Replaced the CommonJS XRegExp fallback with the bundled global runtime value."
+          ]
+        }
+      ]
     }
   ]
 }

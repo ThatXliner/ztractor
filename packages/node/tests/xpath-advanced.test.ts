@@ -96,6 +96,16 @@ describe('Advanced XPath Support', () => {
     expect(nodes[0].textContent).toBe('Article 2');
   });
 
+  test('returns attribute nodes for attribute selections', () => {
+    const doc = parseHTMLDocument(html, 'https://example.com');
+    const result = doc.evaluate('//article[1]/a/@href', doc, null, 0, null);
+
+    const node = result.iterateNext() as Attr | null;
+
+    expect(node?.nodeType).toBe(2);
+    expect(node?.value).toBe('/article1');
+  });
+
   test('supports position predicates', () => {
     const doc = parseHTMLDocument(html, 'https://example.com');
     const result = doc.evaluate('//article[1]//a', doc, null, 0, null);

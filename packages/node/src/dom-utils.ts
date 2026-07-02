@@ -104,10 +104,7 @@ function installXPathSupport(linkedomDoc: any, html: string): void {
 
       // Map xmldom nodes to linkedom nodes by path
       const linkedomNodes = nodeArray
-        .map((xmlNode: any) => {
-          if (!xmlNode || !xmlNode.nodeName) return null;
-          return findMatchingLinkedomNode(linkedomDoc, xmlNode);
-        })
+        .map((xmlNode: any) => mapXmlNodeToLinkedomNode(linkedomDoc, xmlNode))
         .filter(Boolean) as Node[];
 
       return createXPathResult(linkedomNodes);
@@ -124,6 +121,17 @@ function installXPathSupport(linkedomDoc: any, html: string): void {
       return null; // Most translators don't use namespaces
     };
   }
+}
+
+function mapXmlNodeToLinkedomNode(linkedomDoc: any, xmlNode: any): Node | null {
+  if (!xmlNode || !xmlNode.nodeName) return null;
+
+  if (xmlNode.nodeType === 2 && xmlNode.ownerElement) {
+    const owner = findMatchingLinkedomNode(linkedomDoc, xmlNode.ownerElement) as Element | null;
+    return owner?.getAttributeNode?.(xmlNode.nodeName) as Node | null;
+  }
+
+  return findMatchingLinkedomNode(linkedomDoc, xmlNode);
 }
 
 /**

@@ -7,10 +7,10 @@ import type {
   ExtractMetadataOptions,
   ExtractMetadataResult,
   ZoteroItem,
-  Translator,
 } from './types';
 import type { TranslatorRegistryEntry } from './translators-registry';
 import { executeDetectWeb, executeDoWeb, parseHTMLDocument } from './executor';
+import { ZoteroRuntimeExecutor } from './zotero-runtime-executor';
 
 export { parseHTMLDocument, executeDetectWeb, executeDoWeb } from './executor';
 export { Item } from './item';
@@ -28,6 +28,10 @@ async function loadRegistry(): Promise<void> {
     translatorsRegistry = module.TRANSLATORS_REGISTRY;
     findTranslatorsForUrl = module.findTranslatorsForUrl;
   }
+}
+
+function sortByTranslatorPriority(entries: TranslatorRegistryEntry[]): TranslatorRegistryEntry[] {
+  return [...entries].sort((a, b) => a.metadata.priority - b.metadata.priority);
 }
 
 /**
@@ -58,7 +62,13 @@ export async function extractMetadata(
   const opts: ExtractMetadataOptions =
     typeof options === 'string' ? { url: options } : options;
 
-  const { url, html, headers, timeout = 10000, dependencies } = opts;
+  const {
+    url,
+    html,
+    headers,
+    timeout = 10000,
+    dependencies = { DOMParser: (globalThis as any).DOMParser },
+  } = opts;
 
   try {
     // Load translators registry
@@ -89,7 +99,7 @@ export async function extractMetadata(
     const doc = parseHTMLDocument(htmlContent, url, dependencies);
 
     // Find matching translators
-    const matchingTranslators = findTranslatorsForUrl(url);
+    const matchingTranslators = sortByTranslatorPriority(findTranslatorsForUrl(url));
 
     if (matchingTranslators.length === 0) {
       return {
@@ -98,30 +108,26 @@ export async function extractMetadata(
       };
     }
 
+    const runtimeExecutor = new ZoteroRuntimeExecutor(translatorsRegistry, dependencies);
+
     // Try translators in priority order
     for (const entry of matchingTranslators) {
       try {
-        // Translator code is already bundled in the entry
-        const translator: Translator = {
-          metadata: entry.metadata,
-          code: entry.code,
-        };
-
         // Check if translator can handle this page
-        const itemType = await executeDetectWeb(translator, doc, url, dependencies);
+        const itemType = await runtimeExecutor.detectWeb(entry, doc, url);
 
         if (!itemType) {
           continue; // Try next translator
         }
 
         // Extract metadata
-        const items = await executeDoWeb(translator, doc, url, dependencies);
+        const items = await runtimeExecutor.doWeb(entry, doc, url);
 
         if (items.length > 0) {
           return {
             success: true,
             items,
-            translator: translator.metadata.label,
+            translator: entry.metadata.label,
           };
         }
       } catch (e) {
@@ -174,7 +180,7 @@ export async function findTranslators(url: string): Promise<{
     priority: number;
 }[]> {
   await loadRegistry();
-  return findTranslatorsForUrl(url).map((entry) => ({
+  return sortByTranslatorPriority(findTranslatorsForUrl(url)).map((entry) => ({
     id: entry.metadata.translatorID,
     label: entry.metadata.label,
     target: entry.metadata.target,

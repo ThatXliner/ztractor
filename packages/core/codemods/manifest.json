@@ -12,6 +12,16 @@
 			"id": "adapt-repo-registry",
 			"module": "./mods/adapt-repo-registry.ts",
 			"enabled": true
+		},
+		{
+			"id": "adapt-dom-parser",
+			"module": "./mods/adapt-dom-parser.ts",
+			"enabled": true
+		},
+		{
+			"id": "adapt-xregexp-runtime",
+			"module": "./mods/adapt-xregexp-runtime.ts",
+			"enabled": true
 		}
 	]
 }
