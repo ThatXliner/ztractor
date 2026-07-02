@@ -7,6 +7,7 @@ import { applyXRegExpRuntimeAdapter } from "../mods/adapt-xregexp-runtime";
 describe("Zotero upstream codemods", () => {
 	test("HTTP mod routes upstream host hooks through Ztractor host adapters", () => {
 		const source = [
+			"\tthis.StatusError.prototype = Object.create(Error.prototype);",
 			"\t\tthrow new Error(`Zotero.HTTP.request(): not implemented`);",
 			"\t\tthrow new Error('Zotero.HTTP.wrapDocument(): not implemented');",
 			"\t\tthrow new Error(`Zotero.HTTP.processDocuments(): not implemented`);",
@@ -15,6 +16,7 @@ describe("Zotero upstream codemods", () => {
 		const output = applyHttpHostAdapter(source);
 
 		expect(output).toContain("Zotero.__ztractorHost.http.request(method, url, options)");
+		expect(output).toContain("this.UnexpectedStatusException = this.StatusError");
 		expect(output).toContain("Zotero.__ztractorHost.dom.wrapDocument(doc, docURL)");
 		expect(output).toContain("Zotero.__ztractorHost.http.processDocuments(urls, processor, options)");
 		expect(output).not.toContain("not implemented`");

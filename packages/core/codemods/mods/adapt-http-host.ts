@@ -11,6 +11,12 @@ const requestReplacement = normalizeIndent(`
 		return Zotero.__ztractorHost.http.request(method, url, options);
 `);
 
+const unexpectedStatusAnchor = "\tthis.StatusError.prototype = Object.create(Error.prototype);";
+const unexpectedStatusReplacement = normalizeIndent(`
+	this.StatusError.prototype = Object.create(Error.prototype);
+	this.UnexpectedStatusException = this.StatusError;
+`);
+
 const wrapDocumentAnchor = "\t\tthrow new Error('Zotero.HTTP.wrapDocument(): not implemented');";
 const wrapDocumentReplacement = normalizeIndent(`
 		if (!Zotero.__ztractorHost || !Zotero.__ztractorHost.dom) {
@@ -29,6 +35,7 @@ const processDocumentsReplacement = normalizeIndent(`
 
 export function applyHttpHostAdapter(source: string): string {
 	let code = replaceOnce(source, requestAnchor, requestReplacement, id);
+	code = replaceOnce(code, unexpectedStatusAnchor, unexpectedStatusReplacement, id);
 	code = replaceOnce(code, wrapDocumentAnchor, wrapDocumentReplacement, id);
 	code = replaceOnce(code, processDocumentsAnchor, processDocumentsReplacement, id);
 	return code;

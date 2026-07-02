@@ -34,6 +34,25 @@ function sortByTranslatorPriority(entries: TranslatorRegistryEntry[]): Translato
   return [...entries].sort((a, b) => a.metadata.priority - b.metadata.priority);
 }
 
+function isWebTranslator(entry: TranslatorRegistryEntry): boolean {
+  return (entry.metadata.translatorType & 4) !== 0;
+}
+
+async function withTimeout<T>(promise: Promise<T>, timeout: number, label: string): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeoutPromise = new Promise<never>((_resolve, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error(`${label} timed out after ${timeout}ms`));
+    }, timeout);
+  });
+
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+}
+
 /**
  * Extract metadata from a URL
  *
@@ -114,14 +133,22 @@ export async function extractMetadata(
     for (const entry of matchingTranslators) {
       try {
         // Check if translator can handle this page
-        const itemType = await runtimeExecutor.detectWeb(entry, doc, url);
+        const itemType = await withTimeout(
+          runtimeExecutor.detectWeb(entry, doc, url),
+          timeout,
+          `${entry.metadata.label} detectWeb`,
+        );
 
         if (!itemType) {
           continue; // Try next translator
         }
 
         // Extract metadata
-        const items = await runtimeExecutor.doWeb(entry, doc, url);
+        const items = await withTimeout(
+          runtimeExecutor.doWeb(entry, doc, url),
+          timeout,
+          `${entry.metadata.label} doWeb`,
+        );
 
         if (items.length > 0) {
           return {
@@ -162,7 +189,7 @@ export async function getAvailableTranslators(): Promise<{
     priority: number;
 }[]> {
   await loadRegistry();
-  return translatorsRegistry.map((entry) => ({
+  return translatorsRegistry.filter(isWebTranslator).map((entry) => ({
     id: entry.metadata.translatorID,
     label: entry.metadata.label,
     target: entry.metadata.target,
@@ -180,7 +207,9 @@ export async function findTranslators(url: string): Promise<{
     priority: number;
 }[]> {
   await loadRegistry();
-  return sortByTranslatorPriority(findTranslatorsForUrl(url)).map((entry) => ({
+  return sortByTranslatorPriority(findTranslatorsForUrl(url))
+    .filter((entry) => entry.metadata.target !== "")
+    .map((entry) => ({
     id: entry.metadata.translatorID,
     label: entry.metadata.label,
     target: entry.metadata.target,

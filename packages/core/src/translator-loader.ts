@@ -18,7 +18,7 @@ export function parseTranslatorMetadata(
     if (
       !metadata.translatorID ||
       !metadata.label ||
-      !metadata.target ||
+      metadata.target === undefined ||
       metadata.translatorType === undefined
     ) {
       return null;

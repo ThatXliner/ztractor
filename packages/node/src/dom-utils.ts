@@ -8,15 +8,16 @@ import { DOMParser as XMLDOMParser } from '@xmldom/xmldom';
 export class SafeDOMParser {
   parseFromString(source: string, type: string): Document {
     const parser = new LinkedomDOMParser();
-    const doc = parser.parseFromString(source, type);
+    let doc = parser.parseFromString(source, type);
 
     // If parsing plain text or invalid content results in no documentElement,
     // wrap it in a proper HTML structure to avoid linkedom errors
     if (!doc.documentElement && type === 'text/html') {
       const wrapped = `<html><body>${source}</body></html>`;
-      return parser.parseFromString(wrapped, type);
+      doc = parser.parseFromString(wrapped, type);
     }
 
+    installXPathSupport(doc as any, source);
     return doc;
   }
 }
@@ -98,8 +99,9 @@ function installXPathSupport(linkedomDoc: any, html: string): void {
     result: any
   ): XPathResult {
     try {
-      // Execute XPath on xmldom document
-      const xmlNodes = xpathSelect(expression, xmlDocRef);
+      const xmlContextNode = mapLinkedomNodeToXmlNode(xmlDocRef, linkedomDoc, contextNode)
+        || xmlDocRef;
+      const xmlNodes = xpathSelect(expression, xmlContextNode);
       const nodeArray = Array.isArray(xmlNodes) ? xmlNodes : [xmlNodes];
 
       // Map xmldom nodes to linkedom nodes by path
@@ -134,38 +136,51 @@ function mapXmlNodeToLinkedomNode(linkedomDoc: any, xmlNode: any): Node | null {
   return findMatchingLinkedomNode(linkedomDoc, xmlNode);
 }
 
-/**
- * Find matching linkedom node for an xmldom node
- */
-function findMatchingLinkedomNode(linkedomDoc: any, xmlNode: any): Node | null {
-  try {
-    // Get the node's path
-    const path = getNodePath(xmlNode);
+function mapLinkedomNodeToXmlNode(xmlDoc: any, linkedomDoc: any, linkedomNode: any): any | null {
+  if (!linkedomNode || linkedomNode === linkedomDoc) return xmlDoc;
+  return findMatchingNodeByPath(xmlDoc, linkedomNode);
+}
 
-    // Navigate to the same path in linkedom document
-    let currentNode: any = linkedomDoc.documentElement || linkedomDoc;
+function getElementChildren(node: any): any[] {
+  return Array.from(node.children || node.childNodes || [])
+    .filter((child: any) => child?.nodeType === 1);
+}
+
+function findMatchingNodeByPath(rootDoc: any, sourceNode: any): any | null {
+  try {
+    const path = getNodePath(sourceNode);
+    let currentNode: any = rootDoc;
 
     for (const step of path) {
-      if (!currentNode.children) return null;
-
-      const children = Array.from(currentNode.children);
+      const children = getElementChildren(currentNode);
       let matchIndex = 0;
+      let matchedNode: any = null;
 
       for (const child of children) {
-        if ((child as any).nodeName?.toLowerCase() === step.tagName.toLowerCase()) {
+        if (child.nodeName?.toLowerCase() === step.tagName.toLowerCase()) {
           if (matchIndex === step.index) {
-            currentNode = child;
+            matchedNode = child;
             break;
           }
           matchIndex++;
         }
       }
+
+      if (!matchedNode) return null;
+      currentNode = matchedNode;
     }
 
-    return currentNode as Node;
-  } catch (e) {
+    return currentNode;
+  } catch (_e) {
     return null;
   }
+}
+
+/**
+ * Find matching linkedom node for an xmldom node
+ */
+function findMatchingLinkedomNode(linkedomDoc: any, xmlNode: any): Node | null {
+  return findMatchingNodeByPath(linkedomDoc, xmlNode) as Node | null;
 }
 
 /**
@@ -183,7 +198,7 @@ function getNodePath(node: any): Array<{ tagName: string; index: number }> {
     let index = 0;
     if (parent.childNodes) {
       for (const sibling of Array.from(parent.childNodes)) {
-        if ((sibling as any).nodeName === tagName) {
+        if ((sibling as any).nodeType === 1 && (sibling as any).nodeName === tagName) {
           if (sibling === current) break;
           index++;
         }

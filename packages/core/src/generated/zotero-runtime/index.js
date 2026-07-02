@@ -10276,7 +10276,8 @@ Zotero.HTTP = new function() {
 			this.responseText = typeof xmlhttp.responseText == 'string' ? xmlhttp.responseText : undefined;
 		} catch (e) {}
 	};
-	this.StatusError.prototype = Object.create(Error.prototype);
+this.StatusError.prototype = Object.create(Error.prototype);
+this.UnexpectedStatusException = this.StatusError;
 
 	this.TimeoutError = function(ms) {
 		this.message = `HTTP request has timed out after ${ms}ms`;

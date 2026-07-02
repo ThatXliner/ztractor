@@ -1,5 +1,5 @@
 import { test, expect, describe } from 'bun:test';
-import { parseHTMLDocument } from '../src/dom-utils';
+import { DOMParser, parseHTMLDocument } from '../src/dom-utils';
 import { executeDetectWeb, executeDoWeb } from 'ztractor';
 
 describe('Advanced XPath Support', () => {
@@ -104,6 +104,37 @@ describe('Advanced XPath Support', () => {
 
     expect(node?.nodeType).toBe(2);
     expect(node?.value).toBe('/article1');
+  });
+
+  test('maps attributes in documents with doctypes', () => {
+    const doc = parseHTMLDocument(
+      '<!doctype html><html><body><a id="permalink" href="/stable">Stable</a></body></html>',
+      'https://example.com'
+    );
+    const result = doc.evaluate('//a[@id="permalink"]/@href', doc, null, 0, null);
+
+    expect((result.iterateNext() as Attr | null)?.value).toBe('/stable');
+  });
+
+  test('installs XPath support on DOMParser-created XML documents', () => {
+    const doc = new DOMParser().parseFromString(
+      '<root><article><title>Example</title></article></root>',
+      'text/xml'
+    );
+    const result = doc.evaluate('/root/article/title', doc, null, 0, null);
+
+    expect(result.iterateNext()?.textContent).toBe('Example');
+  });
+
+  test('evaluates relative XPath against the provided context node', () => {
+    const doc = new DOMParser().parseFromString(
+      '<root><article><title>First</title></article><article><title>Second</title></article></root>',
+      'text/xml'
+    );
+    const article = doc.querySelectorAll('article')[1];
+    const result = doc.evaluate('title', article, null, 0, null);
+
+    expect(result.iterateNext()?.textContent).toBe('Second');
   });
 
   test('supports position predicates', () => {

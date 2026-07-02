@@ -183,8 +183,9 @@ export interface TranslatorMetadata {
   priority: number;
   inRepository: boolean;
   translatorType: number;
-  browserSupport: string;
+  browserSupport?: string;
   lastUpdated: string;
+  [key: string]: unknown;
 }
 
 /**

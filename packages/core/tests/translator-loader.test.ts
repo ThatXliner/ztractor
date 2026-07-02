@@ -110,6 +110,26 @@ function detectWeb() {}`;
     const metadata = parseTranslatorMetadata(noType);
     expect(metadata).toBeNull();
   });
+
+  test('accepts translators with an empty target', () => {
+    const metadata = parseTranslatorMetadata(`{
+  "translatorID": "empty-target",
+  "label": "Empty Target",
+  "creator": "Test Author",
+  "target": "",
+  "minVersion": "3.0",
+  "maxVersion": "",
+  "priority": 100,
+  "inRepository": true,
+  "translatorType": 8,
+  "lastUpdated": "2024-01-01 12:00:00"
+}
+
+function detectSearch() {}`);
+
+    expect(metadata?.target).toBe('');
+    expect(metadata?.translatorType).toBe(8);
+  });
 });
 
 describe('loadTranslator', () => {

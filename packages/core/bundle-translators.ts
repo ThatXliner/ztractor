@@ -18,14 +18,17 @@ interface TranslatorMetadata {
   priority: number;
   inRepository: boolean;
   translatorType: number;
-  browserSupport: string;
+  browserSupport?: string;
   lastUpdated: string;
+  [key: string]: unknown;
 }
 
 interface TranslatorBundle {
   metadata: TranslatorMetadata;
   code: string;
 }
+
+const TRANSLATOR_TYPE_WEB = 4;
 
 function parseTranslatorMetadata(code: string): TranslatorMetadata | null {
   try {
@@ -37,7 +40,7 @@ function parseTranslatorMetadata(code: string): TranslatorMetadata | null {
     if (
       !metadata.translatorID ||
       !metadata.label ||
-      !metadata.target ||
+      metadata.target === undefined ||
       metadata.translatorType === undefined
     ) {
       return null;
@@ -84,6 +87,7 @@ async function main() {
   const translators: TranslatorBundle[] = [];
   const translatorsByType: Record<number, number> = {};
   let skipped = 0;
+  let webCapable = 0;
   let totalCodeSize = 0;
 
   for (const file of files) {
@@ -97,21 +101,22 @@ async function main() {
       continue;
     }
 
-    // Only include web translators (type 4)
-    if (metadata.translatorType === 4) {
-      const jsCode = extractCodeWithoutMetadata(code);
-      translators.push({
-        metadata,
-        code: jsCode,
-      });
-      totalCodeSize += jsCode.length;
+    const jsCode = extractCodeWithoutMetadata(code);
+    translators.push({
+      metadata,
+      code: jsCode,
+    });
+    totalCodeSize += jsCode.length;
+
+    if ((metadata.translatorType & TRANSLATOR_TYPE_WEB) !== 0) {
+      webCapable++;
     }
 
     translatorsByType[metadata.translatorType] =
       (translatorsByType[metadata.translatorType] || 0) + 1;
   }
 
-  console.log(`✅ Parsed ${translators.length} web translators`);
+  console.log(`✅ Parsed ${translators.length} translators (${webCapable} web-capable)`);
   console.log(`⏭️  Skipped ${skipped} files (invalid or non-web)`);
   console.log(`📏 Total translator code size: ${(totalCodeSize / 1024 / 1024).toFixed(2)} MB`);
   console.log('\n📊 Translators by type:');
@@ -126,7 +131,8 @@ async function main() {
   let registryCode = `/**
  * Auto-generated translator registry with bundled code
  * Generated at: ${new Date().toISOString()}
- * Total web translators: ${translators.length}
+ * Total translators: ${translators.length}
+ * Web-capable translators: ${webCapable}
  *
  * WARNING: This is a large auto-generated file (~${(totalCodeSize / 1024 / 1024).toFixed(1)} MB)
  * Do not edit manually!
@@ -172,6 +178,7 @@ export interface TranslatorRegistryEntry {
  */
 export function findTranslatorsForUrl(url: string): TranslatorRegistryEntry[] {
   return TRANSLATORS_REGISTRY.filter((entry) => {
+    if ((entry.metadata.translatorType & ${TRANSLATOR_TYPE_WEB}) === 0) return false;
     try {
       const regex = new RegExp(entry.metadata.target);
       return regex.test(url);
