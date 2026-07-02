@@ -144,7 +144,6 @@ export async function runCodemods(options: RunCodemodsOptions = {}): Promise<Cod
 	}
 
 	const report: CodemodRunReport = {
-		generatedAt: new Date().toISOString(),
 		mode,
 		upstreamRoot: context.upstreamRoot,
 		upstreamCommit: getGitCommit(context.upstreamRoot),

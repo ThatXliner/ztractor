@@ -51,7 +51,6 @@ export interface CodemodReport {
 }
 
 export interface CodemodRunReport {
-	generatedAt: string;
 	mode: "check" | "write";
 	upstreamRoot: string;
 	upstreamCommit: string | null;
