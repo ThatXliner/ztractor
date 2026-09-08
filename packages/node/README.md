@@ -1,117 +1,88 @@
-# Ztractor Node
+# ztractor-node
 
-> Node.js optimized version of Ztractor with linkedom for fast DOM parsing
+`ztractor-node` is the Node.js adapter for the browser-compatible
+[`ztractor`](../core) package. It injects a Linkedom-based `DOMParser` and
+HTML document parser, with XPath support provided by `@xmldom/xmldom` and
+`xpath`. It runs the same pinned Zotero runtime and web translators as the
+core package.
 
-Ztractor makes it easy to extract structured metadata (titles, authors, dates, etc.) from websites using [Zotero's translators](https://github.com/zotero/translators). This Node.js package uses [linkedom](https://github.com/WebReflection/linkedom) for fast, lightweight DOM parsing.
+These docs describe a source checkout. Build the monorepo from the repository
+root using the [root instructions](../../README.md), including its pinned
+submodules. The generated runtime and translator sources are required for a
+local build.
 
-The published npm package does not yet include this branch's runtime extension.
-Build the repository from source as described in the [root README](../../README.md)
-before using the HTML and `network: 'deny'` API shown by the core package.
+## Run a local build
 
-## Installation
+After `bun run build`, from the repository root, save this as
+`tmp-extract.mjs` and run it with `node tmp-extract.mjs` or
+`bun tmp-extract.mjs`:
 
-```bash
-npm install ztractor-node
-```
+```js
+import { extractMetadata } from './packages/node/dist/index.js';
 
-Or with bun:
-
-```bash
-bun add ztractor-node
-```
-
-## Quick Start
-
-```typescript
-import { extractMetadata } from 'ztractor-node';
-
-// Simple usage - just pass a URL
 const result = await extractMetadata({
-  url: 'https://www.nytimes.com/2024/01/15/technology/example.html',
+  url: 'https://example.org/article',
+  html: `<!doctype html>
+    <html><head>
+      <meta name="citation_title" content="Reliable evidence">
+      <meta name="citation_author" content="Doe, Jane">
+      <meta name="citation_publication_date" content="2024-02-03">
+    </head><body><article>Article text.</article></body></html>`,
+  network: 'deny',
+  timeout: 10_000,
 });
 
-if (result.success && result.items) {
-  const item = result.items[0];
-  console.log(item.title);        // Article title
-  console.log(item.creators);     // Authors
-  console.log(item.date);         // Publication date
-  console.log(item.itemType);     // "newspaperArticle"
-}
-```
-
-## Why Use ztractor-node?
-
-This package is optimized for Node.js environments:
-
-- **Fast DOM parsing** - Uses [linkedom](https://github.com/WebReflection/linkedom) instead of heavyweight alternatives
-- **Decent XPath support** - Hybrid linkedom/@xmldom/xmldom implementation for XPath 1.0 (used by some Zotero Translators)
-- **No browser required** - Pure Node.js implementation, no headless browser needed
-- **Small footprint** - Lightweight compared to jsdom or puppeteer
-
-For browser environments, use the `ztractor` package instead, which uses native browser APIs.
-
-## API Reference
-
-The API is identical to the core `ztractor` package. See the [core package README](../core/README.md) for complete documentation on:
-
-- **API Functions**: `extractMetadata()`, `findTranslators()`, `getAvailableTranslators()`
-- **Metadata Structure**: `ZoteroItem` interface, item types, creator types
-- **Supported Sites**: Complete list of 600+ supported websites
-- **Usage Examples**: News articles, academic papers, batch processing, etc.
-
-### Node.js-Specific Example
-
-```typescript
-import { writeFile } from 'fs/promises';
-import { extractMetadata } from 'ztractor-node';
-
-const result = await extractMetadata('https://example.com/article');
-
 if (result.success) {
-  // Save metadata to file
-  await writeFile('metadata.json', JSON.stringify(result.items, null, 2));
+  console.log(result.items);
+} else {
+  console.error(result.error);
+  console.error(result.diagnostics);
 }
 ```
 
-## Technical Details
+## API
 
-### DOM Implementation
+The Node wrapper accepts the same URL string or options object as
+`ztractor.extractMetadata`. The options object requires `url`; common inputs
+are:
 
-This package uses a hybrid DOM approach for optimal compatibility:
+- `html`: captured static HTML, which skips the initial fetch.
+- `document`: an already parsed DOM document, which also skips the initial
+  fetch.
+- `network`: `'allow'` by default, or `'deny'` to block the initial fetch
+  and translator follow-up requests.
+- `timeout`, `signal`, and `headers` for request and cancellation control.
 
-- **linkedom** - Main DOM implementation for queries and manipulation (fast and lightweight)
-- **@xmldom/xmldom + xpath** - XPath evaluation engine
-- Results automatically mapped between implementations
+Results have `success`. Successful results expose `items`; failures expose
+`error`. Optional `translator`, `source`, and `diagnostics` fields
+identify the selected translator or explain attempts. A translator that
+reports multiple items produces a failure asking for an individual article
+page. The adapter does not auto-select one.
 
-This provides full XPath 1.0 support including:
-- Complex axes (following-sibling, ancestor, etc.)
-- Predicates and filters
-- Functions like `contains()`, `normalize-space()`
+See the [core package README](../core/README.md) and the actual [option and
+result types](../core/src/types.ts) for shared API details.
 
-### Translator Execution
+## Runtime constraints
 
-- Translators run in a sandboxed environment using `new Function()`
-- No access to Node.js APIs or file system from translator code
-- Full Zotero API surface implemented (`Zotero.Item`, `ZU` utilities, etc.)
+The Node adapter parses supplied HTML and does not execute page JavaScript. It
+uses web translators only; bundled translator sources are not a validation
+claim for every site or page shape. Allowing network access can also let a
+translator make follow-up requests.
 
-## Limitations
+Translator/runtime code runs as trusted code in the Node process; `new
+Function` does not provide filesystem isolation.
 
-As with the original Ztractor:
-- **Static HTML only**: Does not execute JavaScript on pages. No headless browser.
-- **Web translators only**: Currently only supports web translators (type 4). Import/export translators are not included.
+## Checks
 
-## License
+From the repository root:
 
-AGPL v3+
+```sh
+bun run --filter ztractor-node check
+bun test
+```
 
-## Credits
+## License and upstream notices
 
-- [Zotero](https://www.zotero.org/) - For the amazing collection of translators
-- [linkedom](https://github.com/WebReflection/linkedom) - Fast DOM implementation
-- Built with [Bun](https://bun.sh/)
-
-## Related Projects
-
-- [Zotero](https://www.zotero.org/) - Reference manager
-- [translation-server](https://github.com/zotero/translation-server) - Official Zotero translation server
-- [Citation.js](https://citation.js.org/) - Alternative citation library
+This package is licensed under AGPL v3+, available in [LICENSE](../../LICENSE).
+The pinned `translate` and `translators` submodules retain their upstream
+Zotero runtime and translator notices.
