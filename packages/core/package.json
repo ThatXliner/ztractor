@@ -41,8 +41,13 @@
         "./package.json": "./package.json"
     },
     "scripts": {
-        "build": "bun bundle-translators.ts && bunx bunup --exports -t browser",
-        "test": "bun test"
+        "build": "bun run build:zotero-runtime && bun bundle-translators.ts && bunx bunup --exports -t browser",
+        "build:zotero-runtime": "bun scripts/build-zotero-runtime.ts",
+        "codemods:check": "bun codemods/run-codemods.ts --check",
+        "codemods:write": "bun codemods/run-codemods.ts --write",
+        "upgrade:zotero": "bun scripts/upgrade-zotero.ts",
+        "test": "bun test",
+        "check": "bunx tsc --noEmit -p tsconfig.json"
     },
     "devDependencies": {
         "@types/bun": "^1.3.2",

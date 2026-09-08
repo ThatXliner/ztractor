@@ -1,94 +1,60 @@
 # Ztractor
 
-> Extract metadata from websites using Zotero's powerful collection of 600+ translators
+Ztractor runs the pinned upstream Zotero translation runtime against supplied HTML. It bundles the
+translator sources in this repository; having a bundled translator does not mean every site, page
+shape, or translator network dependency is supported or verified.
 
-Ztractor makes it easy to extract structured metadata (titles, authors, dates, etc.) from websites using [Zotero's translators](https://github.com/zotero/translators). This core package works in both browsers and Node.js environments.
+## Use this branch from source
 
-## Installation
-
-```bash
-npm install ztractor
-```
-
-Or with bun:
+The published `ztractor@1.0.0` package does not include this runtime extension. Build this branch
+with its pinned `translate` and `translators` submodules instead:
 
 ```bash
-bun add ztractor
+git submodule update --init --recursive
+cd packages/core
+bun install
+bun run build
 ```
 
-## Quick Start
+This branch is intended for the next minor release. It does not publish to npm.
 
-### Browser
+## Primary API
+
+Supply page HTML and deny all network access when extraction must stay offline:
 
 ```typescript
 import { extractMetadata } from 'ztractor';
 
-// Simple usage - just pass a URL
 const result = await extractMetadata({
-  url: 'https://www.nytimes.com/2024/01/15/technology/example.html',
+  url: 'https://example.org/article',
+  html: pageHTML,
+  network: 'deny',
+  timeout: 10_000,
+  signal: abortController.signal,
 });
 
-if (result.success && result.items) {
-  const item = result.items[0];
-  console.log(item.title);        // Article title
-  console.log(item.creators);     // Authors
-  console.log(item.date);         // Publication date
-  console.log(item.itemType);     // "newspaperArticle"
-}
+if (result.success) console.log(result.items?.[0]);
 ```
 
-### Node.js
+`html: ''` and `document` are supplied page data and do not trigger an initial fetch. If neither is
+provided, Ztractor fetches the initial URL. With `network: 'deny'`, that call is rejected before
+fetching and translators cannot make follow-up requests. Results include `diagnostics` for failed
+translators. A targeted translator that reports multiple items returns a failure asking for an
+individual article page; Ztractor never auto-selects an item.
 
-For Node.js environments, use the optimized `ztractor-node` package instead:
+`ztractor-node` exposes the same API and supplies Linkedom-based DOM and XPath support for Node.js.
 
-```bash
-npm install ztractor-node
-```
+## Runtime requirements and limits
 
-```typescript
-import { extractMetadata } from 'ztractor-node';
-// Same API as browser version
-```
+The upstream translator runtime is dynamically created from pinned sources. Browser deployments need
+a CSP and isolated execution context that permit that runtime. Static HTML is parsed; page JavaScript
+is not executed. Browser CORS can require fetching the page elsewhere before supplying its HTML. Some
+translators need network access or features outside this runtime, so neither all-site support nor
+request-free extraction is guaranteed when networking is allowed.
 
-The Node.js version uses [linkedom](https://github.com/WebReflection/linkedom) for faster DOM parsing.
-
-## Features
-
-- **600+ translators** - Support for academic journals, news sites, blogs, and more
-- **TypeScript-native** - Full type definitions for all metadata fields
-- **Isomorphic** - Works in both browsers and Node.js
-- **Zero config** - All translators bundled at build time
-- **Lightweight** - Uses native DOM APIs in browsers
-
-## API
-
-See the [repository](https://github.com/ThatXliner/ztractor#API) for details
-
-## Browser Compatibility
-
-This package uses native browser APIs:
-- `DOMParser` for HTML parsing
-- `document.evaluate()` for XPath queries
-- `fetch()` for HTTP requests
-
-Supports all modern browsers (Chrome, Firefox, Safari, Edge).
-
-## Limitations
-
-- **Static HTML only**: Does not execute JavaScript on pages. Some sites with heavy client-side rendering may not work.
-- **CORS restrictions**: When running in browsers, you may need to fetch HTML server-side due to CORS policies.
-- **Web translators only**: Only supports web translators (type 4). Import/export translators are not included.
+Only web translators are used for extraction. `executeDetectWeb()` and `executeDoWeb()` remain
+exported as deprecated compatibility shims; new code should use `extractMetadata()`.
 
 ## License
 
 AGPL v3+
-
-## Credits
-
-- [Zotero](https://www.zotero.org/) - For the amazing collection of translators
-- Built with [Bun](https://bun.sh/)
-
-## Related Projects
-
-- [Zotero](https://www.zotero.org/) - Reference manager
-- [translation-server](https://github.com/zotero/translation-server) - Official Zotero translation server

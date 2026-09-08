@@ -1,3 +1,6 @@
 [submodule "translators"]
 	path = packages/core/translators
 	url = https://github.com/zotero/translators.git
+[submodule "packages/core/translate"]
+	path = packages/core/translate
+	url = https://github.com/zotero/translate.git

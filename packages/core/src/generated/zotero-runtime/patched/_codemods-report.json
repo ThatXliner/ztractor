@@ -1,0 +1,67 @@
+{
+  "mode": "write",
+  "upstreamRoot": "translate",
+  "upstreamCommit": "d08300c2c01a4d6ef325f05cbefc6c138a99f811",
+  "outputRoot": "src/generated/zotero-runtime/patched",
+  "mods": [
+    {
+      "id": "adapt-http-host",
+      "description": "Route Zotero HTTP and document loading hooks through the Ztractor host adapter.",
+      "files": [
+        {
+          "filePath": "src/http.js",
+          "changed": true,
+          "notes": [
+            "Replaced upstream not-implemented HTTP hooks with calls into Zotero.__ztractorHost."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "adapt-repo-registry",
+      "description": "Route Zotero repository lookups through the Ztractor translator registry when present.",
+      "files": [
+        {
+          "filePath": "src/repo.js",
+          "changed": true,
+          "notes": [
+            "Added a host registry path while preserving Zotero's upstream HTTP repository fallback."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "adapt-dom-parser",
+      "description": "Replace upstream Node-only jsdom parsing branches with host-provided DOMParser.",
+      "files": [
+        {
+          "filePath": "modules/utilities/utilities.js",
+          "changed": true,
+          "notes": [
+            "Removed jsdom requires from Node parsing paths so the browser runtime bundle stays dependency-free."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "adapt-xregexp-runtime",
+      "description": "Make upstream XRegExp browser bundle safe inside the generated ESM runtime.",
+      "files": [
+        {
+          "filePath": "modules/utilities/xregexp-all.js",
+          "changed": true,
+          "notes": [
+            "Renamed Browserify-local require identifiers so downstream bundlers do not resolve internal XRegExp modules."
+          ]
+        },
+        {
+          "filePath": "modules/utilities/utilities.js",
+          "changed": true,
+          "notes": [
+            "Replaced the CommonJS XRegExp fallback with the per-runtime bundled value."
+          ]
+        }
+      ]
+    }
+  ]
+}

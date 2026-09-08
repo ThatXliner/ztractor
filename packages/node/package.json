@@ -43,7 +43,8 @@
     },
     "scripts": {
         "build": "bunx bunup --exports",
-        "test": "bun test"
+        "test": "bun test",
+        "check": "bunx tsc --noEmit -p tsconfig.json"
     },
     "dependencies": {
         "ztractor": "workspace:*",

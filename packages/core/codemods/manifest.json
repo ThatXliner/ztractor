@@ -1,0 +1,27 @@
+{
+	"version": 1,
+	"upstreamRoot": "translate",
+	"outputRoot": "src/generated/zotero-runtime/patched",
+	"mods": [
+		{
+			"id": "adapt-http-host",
+			"module": "./mods/adapt-http-host.ts",
+			"enabled": true
+		},
+		{
+			"id": "adapt-repo-registry",
+			"module": "./mods/adapt-repo-registry.ts",
+			"enabled": true
+		},
+		{
+			"id": "adapt-dom-parser",
+			"module": "./mods/adapt-dom-parser.ts",
+			"enabled": true
+		},
+		{
+			"id": "adapt-xregexp-runtime",
+			"module": "./mods/adapt-xregexp-runtime.ts",
+			"enabled": true
+		}
+	]
+}

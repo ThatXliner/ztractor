@@ -35,6 +35,9 @@ export type ItemType =
   | 'forumPost'
   | 'encyclopediaArticle'
   | 'dictionaryEntry'
+  | 'dataset'
+  | 'preprint'
+  | 'standard'
   | 'software'
   | 'computerProgram'
   | 'multiple';
@@ -183,8 +186,9 @@ export interface TranslatorMetadata {
   priority: number;
   inRepository: boolean;
   translatorType: number;
-  browserSupport: string;
+  browserSupport?: string;
   lastUpdated: string;
+  [key: string]: unknown;
 }
 
 /**
@@ -217,6 +221,21 @@ export interface ExtractMetadataOptions {
   headers?: Record<string, string>;
 
   /**
+   * Whether translators may make network requests
+   */
+  network?: 'allow' | 'deny';
+
+  /**
+   * Abort extraction and any requests made by its translators
+   */
+  signal?: AbortSignal;
+
+  /**
+   * Optional already parsed document. When provided, no initial fetch is made.
+   */
+  document?: Document;
+
+  /**
    * Timeout in milliseconds
    */
   timeout?: number;
@@ -238,4 +257,12 @@ export interface ExtractMetadataResult {
   items?: ZoteroItem[];
   error?: string;
   translator?: string;
+  diagnostics?: ExtractMetadataDiagnostic[];
+  source?: 'translator' | 'page-metadata';
+}
+
+export interface ExtractMetadataDiagnostic {
+  translator: string;
+  stage: 'detect' | 'extract';
+  message: string;
 }

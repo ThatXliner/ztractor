@@ -4,6 +4,10 @@
 
 Ztractor makes it easy to extract structured metadata (titles, authors, dates, etc.) from websites using [Zotero's translators](https://github.com/zotero/translators). This Node.js package uses [linkedom](https://github.com/WebReflection/linkedom) for fast, lightweight DOM parsing.
 
+The published npm package does not yet include this branch's runtime extension.
+Build the repository from source as described in the [root README](../../README.md)
+before using the HTML and `network: 'deny'` API shown by the core package.
+
 ## Installation
 
 ```bash
