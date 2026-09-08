@@ -1,60 +1,84 @@
-# Ztractor
+# ztractor
 
-Ztractor runs the pinned upstream Zotero translation runtime against supplied HTML. It bundles the
-translator sources in this repository; having a bundled translator does not mean every site, page
-shape, or translator network dependency is supported or verified.
+`ztractor` is the browser-compatible package in this repository. It runs the
+pinned Zotero translation runtime and bundled web translators against a URL,
+captured HTML, or an already parsed DOM document.
 
-## Use this branch from source
-
-The published `ztractor@1.0.0` package does not include this runtime extension. Build this branch
-with its pinned `translate` and `translators` submodules instead:
-
-```bash
-git submodule update --init --recursive
-cd packages/core
-bun install
-bun run build
-```
-
-This branch is intended for the next minor release. It does not publish to npm.
+This package is used from the source checkout. Follow the [root build
+instructions](../../README.md) to initialize the pinned submodules and generate
+the runtime and translator registry before importing a local build.
 
 ## Primary API
 
-Supply page HTML and deny all network access when extraction must stay offline:
+In a browser or extension context with `DOMParser` available:
 
-```typescript
+```ts
 import { extractMetadata } from 'ztractor';
 
+const url = 'https://example.org/article';
+const pageHTML = `<!doctype html>
+  <html><head>
+    <meta name="citation_title" content="Reliable evidence">
+    <meta name="citation_author" content="Doe, Jane">
+    <meta name="citation_publication_date" content="2024-02-03">
+  </head><body><article>Article text.</article></body></html>`;
+
 const result = await extractMetadata({
-  url: 'https://example.org/article',
+  url,
   html: pageHTML,
   network: 'deny',
   timeout: 10_000,
-  signal: abortController.signal,
 });
 
-if (result.success) console.log(result.items?.[0]);
+if (result.success) {
+  console.log(result.items);
+} else {
+  console.error(result.error);
+  console.error(result.diagnostics);
+}
 ```
 
-`html: ''` and `document` are supplied page data and do not trigger an initial fetch. If neither is
-provided, Ztractor fetches the initial URL. With `network: 'deny'`, that call is rejected before
-fetching and translators cannot make follow-up requests. Results include `diagnostics` for failed
-translators. A targeted translator that reports multiple items returns a failure asking for an
-individual article page; Ztractor never auto-selects an item.
+`extractMetadata` accepts a URL string or an options object. The object
+requires `url`. The commonly used options are:
 
-`ztractor-node` exposes the same API and supplies Linkedom-based DOM and XPath support for Node.js.
+- `html`: supplied static HTML, which skips the initial fetch.
+- `document`: an already parsed document, which also skips the initial fetch.
+- `network`: `'allow'` by default, or `'deny'` to block the initial fetch
+  and translator follow-up requests.
+- `headers`, `timeout`, and `signal` for fetch and cancellation control.
 
-## Runtime requirements and limits
+Results have `success`. A successful result exposes `items`; a failed result
+exposes `error`. `translator`, `source`, and `diagnostics` are optional
+fields described by the [source types](./src/types.ts). When a translator
+reports multiple items, the result asks the caller to open an individual
+article page. Ztractor does not auto-select one.
 
-The upstream translator runtime is dynamically created from pinned sources. Browser deployments need
-a CSP and isolated execution context that permit that runtime. Static HTML is parsed; page JavaScript
-is not executed. Browser CORS can require fetching the page elsewhere before supplying its HTML. Some
-translators need network access or features outside this runtime, so neither all-site support nor
-request-free extraction is guaranteed when networking is allowed.
+The entry point also exposes translator discovery and compatibility helpers.
+See [src/index.ts](./src/index.ts) for the current exports.
 
-Only web translators are used for extraction. `executeDetectWeb()` and `executeDoWeb()` remain
-exported as deprecated compatibility shims; new code should use `extractMetadata()`.
+## Runtime constraints
 
-## License
+Static HTML is parsed as supplied; page JavaScript is not executed. Extraction
+uses web translators; import/export translation is outside this API. A bundled
+translator source is available locally, but that does not mean every site has
+been validated or that every translator works without network access.
 
-AGPL v3+
+The runtime is created dynamically. Browser consumers need an isolated
+execution context and a CSP that permits locally trusted runtime code. Card
+Cutter keeps this code in its extension manifest sandbox rather than granting
+`unsafe-eval` to privileged extension pages.
+
+## Checks
+
+From the repository root:
+
+```sh
+bun run --filter ztractor check
+bun test
+```
+
+## License and upstream notices
+
+This package is licensed under AGPL v3+, available in [LICENSE](../../LICENSE).
+The pinned `translate` and `translators` submodules retain their upstream
+Zotero runtime and translator notices.
