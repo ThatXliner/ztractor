@@ -91,15 +91,9 @@ export class Item implements ZoteroItem {
     };
 
     // Copy all defined properties
-    const keys = Object.keys(this) as (keyof Item)[];
-    for (const key of keys) {
-      if (
-        key !== 'completed' &&
-        key !== '_onComplete' &&
-        this[key] !== undefined &&
-        this[key] !== null
-      ) {
-        obj[key] = this[key];
+    for (const [key, value] of Object.entries(this)) {
+      if (key !== 'completed' && key !== '_onComplete' && value !== undefined && value !== null) {
+        obj[key] = value;
       }
     }
 

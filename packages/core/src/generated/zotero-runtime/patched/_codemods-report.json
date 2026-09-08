@@ -1,8 +1,8 @@
 {
   "mode": "write",
-  "upstreamRoot": "/Users/me/Developer/ztractor/packages/core/translate",
+  "upstreamRoot": "translate",
   "upstreamCommit": "d08300c2c01a4d6ef325f05cbefc6c138a99f811",
-  "outputRoot": "/Users/me/Developer/ztractor/packages/core/src/generated/zotero-runtime/patched",
+  "outputRoot": "src/generated/zotero-runtime/patched",
   "mods": [
     {
       "id": "adapt-http-host",
@@ -58,7 +58,7 @@
           "filePath": "modules/utilities/utilities.js",
           "changed": true,
           "notes": [
-            "Replaced the CommonJS XRegExp fallback with the bundled global runtime value."
+            "Replaced the CommonJS XRegExp fallback with the per-runtime bundled value."
           ]
         }
       ]

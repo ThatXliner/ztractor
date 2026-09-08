@@ -153,9 +153,14 @@ export async function runCodemods(options: RunCodemodsOptions = {}): Promise<Cod
 
 	if (mode === "write") {
 		await mkdir(context.outputRoot, { recursive: true });
+		const reportForFile = {
+			...report,
+			upstreamRoot: manifest.upstreamRoot,
+			outputRoot: manifest.outputRoot,
+		};
 		await writeFile(
 			join(context.outputRoot, "_codemods-report.json"),
-			`${JSON.stringify(report, null, 2)}\n`,
+			`${JSON.stringify(reportForFile, null, 2)}\n`,
 			"utf-8",
 		);
 	}

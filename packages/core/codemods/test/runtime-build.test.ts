@@ -25,4 +25,23 @@ describe("generated Zotero runtime ESM", () => {
 		expect(runtime.installZoteroHost(host)).toBe(runtime.Zotero);
 		expect(runtime.Zotero.__ztractorHost).toBe(host);
 	});
+
+	test("creates isolated upstream runtimes without publishing globals", async () => {
+		const runtime = await import("../../src/generated/zotero-runtime/index.js");
+		const globalNames = ["Zotero", "ZOTERO_CONFIG", "$rdf", "TLDS", "XRegExp"] as const;
+		const before = new Map(globalNames.map((name) => [name, (globalThis as any)[name]]));
+		const firstHost = { name: "first" };
+		const secondHost = { name: "second" };
+
+		const first = runtime.createZoteroRuntime(firstHost);
+		const second = runtime.createZoteroRuntime(secondHost);
+
+		expect(first).not.toBe(second);
+		expect(first.__ztractorHost).toBe(firstHost);
+		expect(second.__ztractorHost).toBe(secondHost);
+		expect(first.RDF?.AJAW).toBeDefined();
+		for (const name of globalNames) {
+			expect((globalThis as any)[name]).toBe(before.get(name));
+		}
+	});
 });

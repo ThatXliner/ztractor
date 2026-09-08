@@ -1,5 +1,6 @@
 import type { ExtractMetadataOptions, TranslatorMetadata } from "../types";
 import type { TranslatorRegistryEntry } from "../translators-registry";
+import { withDocumentLocation } from "../document-location";
 
 export interface ZoteroXmlHttpResponse {
 	status: number;
@@ -41,9 +42,23 @@ export interface ZoteroHostAdapters {
 
 type HostDependencies = NonNullable<ExtractMetadataOptions["dependencies"]>;
 
-export interface CreateZoteroHostAdaptersOptions {
+export interface ZoteroHostPolicyOptions {
+	network?: "allow" | "deny";
+	signal?: AbortSignal;
+	baseUrl?: string;
+	timeout?: number;
+}
+
+export interface CreateZoteroHostAdaptersOptions extends ZoteroHostPolicyOptions {
 	entries: TranslatorRegistryEntry[];
 	dependencies: HostDependencies;
+}
+
+export class NetworkAccessDenied extends Error {
+	constructor(url: string) {
+		super(`Network access denied for ${url}`);
+		this.name = "NetworkAccessDenied";
+	}
 }
 
 function getAllResponseHeaders(headers: Headers): string {
@@ -54,65 +69,22 @@ function getAllResponseHeaders(headers: Headers): string {
 	return lines.join("\r\n");
 }
 
-function createLocationLike(url: string) {
-	const parsedUrl = new URL(url);
-	return {
-		href: url,
-		protocol: parsedUrl.protocol,
-		host: parsedUrl.host,
-		hostname: parsedUrl.hostname,
-		port: parsedUrl.port,
-		pathname: parsedUrl.pathname,
-		search: parsedUrl.search,
-		hash: parsedUrl.hash,
-		origin: parsedUrl.origin,
-		toString: () => url,
-	};
-}
-
-function canProxyOverride(doc: Document, prop: "URL" | "documentURI" | "location"): boolean {
-	const descriptor = Object.getOwnPropertyDescriptor(doc, prop);
-	if (!descriptor || descriptor.configurable) return true;
-	if ("value" in descriptor) return Boolean(descriptor.writable);
-	return descriptor.get !== undefined;
-}
-
 function wrapDocument(doc: Document, url: string): Document {
-	const location = createLocationLike(url);
-	try {
-		Object.defineProperty(doc, "URL", { value: url, configurable: true });
-	} catch (_e) {}
-	try {
-		Object.defineProperty(doc, "documentURI", { value: url, configurable: true });
-	} catch (_e) {}
-	try {
-		Object.defineProperty(doc, "location", { value: location, configurable: true });
-		return doc;
-	} catch (_e) {
-		const canOverrideURL = canProxyOverride(doc, "URL");
-		const canOverrideDocumentURI = canProxyOverride(doc, "documentURI");
-		const canOverrideLocation = canProxyOverride(doc, "location");
-		return new Proxy(doc, {
-			get(target, prop, receiver) {
-				if (prop === "URL" && canOverrideURL) return url;
-				if (prop === "documentURI" && canOverrideDocumentURI) return url;
-				if (prop === "location" && canOverrideLocation) return location;
-				const value = Reflect.get(target, prop, receiver);
-				return typeof value === "function" ? value.bind(target) : value;
-			},
-		});
-	}
+	return withDocumentLocation(doc, url);
 }
 
 async function responseToXmlHttp(
 	response: Response,
+	responseURL: string,
 	responseType = "",
+	dependencies: HostDependencies,
+	wrap: (doc: Document, url: string) => Document,
 ): Promise<ZoteroXmlHttpResponse> {
 	const xmlhttp: ZoteroXmlHttpResponse = {
 		status: response.status,
-		responseURL: response.url,
+		responseURL,
 		responseType,
-		getAllResponseHeaders: () => getAllResponseHeaders(response.headers),
+		getAllResponseHeaders: () => getAllResponseHeaders(response.headers ?? new Headers()),
 	};
 
 	if (responseType === "arraybuffer") {
@@ -121,6 +93,22 @@ async function responseToXmlHttp(
 		xmlhttp.response = await response.blob();
 	} else if (responseType === "json") {
 		xmlhttp.response = await response.json();
+	} else if (responseType === "document" || responseType === "xml") {
+		const responseText = await response.text();
+		xmlhttp.responseText = responseText;
+		const contentType = response.headers?.get("content-type")?.toLowerCase() ?? "";
+		const mimeType = responseType === "xml" || contentType.includes("xml")
+			? "text/xml"
+			: "text/html";
+		let document: Document;
+		if (mimeType === "text/html" && dependencies.parseHTMLDocument) {
+			document = dependencies.parseHTMLDocument(responseText, responseURL) as Document;
+		} else if (dependencies.DOMParser) {
+			document = new dependencies.DOMParser().parseFromString(responseText, mimeType);
+		} else {
+			throw new Error("DOMParser unavailable for document response");
+		}
+		xmlhttp.response = wrap(document, responseURL);
 	} else {
 		xmlhttp.responseText = await response.text();
 		xmlhttp.response = xmlhttp.responseText;
@@ -138,6 +126,10 @@ function isInvalidStatus(status: number, successCodes: unknown): boolean {
 export function createZoteroHostAdapters({
 	entries,
 	dependencies,
+	network = "allow",
+	signal,
+	baseUrl,
+	timeout = 10000,
 }: CreateZoteroHostAdaptersOptions): ZoteroHostAdapters {
 	const entriesById = new Map(entries.map((entry) => [entry.metadata.translatorID, entry]));
 
@@ -145,38 +137,121 @@ export function createZoteroHostAdapters({
 		wrapDocument,
 	};
 
-	const http: ZoteroHostHttpAdapter = {
-		async request(method, url, options = {}) {
-			const response = await fetch(url, {
-				method,
-				headers: options.headers as HeadersInit | undefined,
-				body: options.body as BodyInit | null | undefined,
-				signal: typeof options.timeout === "number"
-					? AbortSignal.timeout(options.timeout)
-					: undefined,
-			});
-			const xmlhttp = await responseToXmlHttp(response, String(options.responseType ?? ""));
-			if (isInvalidStatus(xmlhttp.status, options.successCodes)) {
-				const error = new Error(`HTTP request to ${url} rejected with status ${xmlhttp.status}`);
-				(error as any).status = xmlhttp.status;
-				(error as any).responseText = xmlhttp.responseText;
+	function resolveRequestUrl(url: string, requestBaseUrl = baseUrl): string {
+		let resolvedUrl: string;
+		try {
+			resolvedUrl = requestBaseUrl ? new URL(url, requestBaseUrl).toString() : url;
+			const parsedUrl = new URL(resolvedUrl);
+			if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+				throw new Error(`Unsupported request URL scheme: ${parsedUrl.protocol}`);
+			}
+		} catch (error) {
+			if (error instanceof Error && error.message.startsWith("Unsupported request URL scheme:")) {
 				throw error;
 			}
-			return xmlhttp;
+			throw new Error(`Invalid request URL: ${url}`);
+		}
+		return resolvedUrl;
+	}
+
+	function requestTimeout(requestOptions: Record<string, unknown>): number {
+		const policyTimeout = typeof timeout === "number" && Number.isFinite(timeout) && timeout > 0
+			? timeout
+			: 10000;
+		const optionTimeout = typeof requestOptions.timeout === "number"
+			&& Number.isFinite(requestOptions.timeout)
+			&& requestOptions.timeout > 0
+			? requestOptions.timeout
+			: policyTimeout;
+		return Math.min(policyTimeout, optionTimeout);
+	}
+
+	function combineSignals(
+		requestOptions: Record<string, unknown>,
+	): { signal: AbortSignal; dispose: () => void } {
+		const controller = new AbortController();
+		const requestSignal = requestOptions.signal as AbortSignal | undefined;
+		const listeners: Array<{ source: AbortSignal; listener: () => void }> = [];
+		const timeoutMs = requestTimeout(requestOptions);
+		const timeoutId = setTimeout(() => {
+			const error = new Error(`HTTP request timed out after ${timeoutMs}ms`);
+			error.name = "TimeoutError";
+			controller.abort(error);
+		}, timeoutMs);
+		const abortFrom = (source: AbortSignal) => {
+			controller.abort(source.reason);
+		};
+		const sources = [signal, requestSignal].filter(
+			(source): source is AbortSignal => Boolean(source),
+		);
+		for (const source of sources) {
+			if (source.aborted) {
+				abortFrom(source);
+				break;
+			}
+			const listener = () => abortFrom(source);
+			source.addEventListener("abort", listener, { once: true });
+			listeners.push({ source, listener });
+		}
+		return {
+			signal: controller.signal,
+			dispose: () => {
+				clearTimeout(timeoutId);
+				for (const { source, listener } of listeners) {
+					source.removeEventListener("abort", listener);
+				}
+			},
+		};
+	}
+
+	const http: ZoteroHostHttpAdapter = {
+		async request(method, url, options = {}) {
+			const requestOptions = options ?? {};
+			const resolvedUrl = resolveRequestUrl(url);
+			if (network === "deny") {
+				throw new NetworkAccessDenied(resolvedUrl);
+			}
+			const combined = combineSignals(requestOptions);
+			try {
+				const response = await fetch(resolvedUrl, {
+					method,
+					headers: requestOptions.headers as HeadersInit | undefined,
+					body: requestOptions.body as BodyInit | null | undefined,
+					signal: combined.signal,
+				});
+				const responseURL = response.url || resolvedUrl;
+				const xmlhttp = await responseToXmlHttp(
+					response,
+					responseURL,
+					String(requestOptions.responseType ?? ""),
+					dependencies,
+					dom.wrapDocument,
+				);
+				if (isInvalidStatus(xmlhttp.status, requestOptions.successCodes)) {
+					const error = new Error(`HTTP request to ${resolvedUrl} rejected with status ${xmlhttp.status}`);
+					(error as any).status = xmlhttp.status;
+					(error as any).responseText = xmlhttp.responseText;
+					throw error;
+				}
+				return xmlhttp;
+			} finally {
+				combined.dispose();
+			}
 		},
 
 		async processDocuments(urls, processor, options = {}) {
 			const urlList = typeof urls === "string" ? [urls] : urls;
 			const results: unknown[] = [];
 			for (const url of urlList) {
-				const response = await fetch(url, {
-					headers: options.headers as HeadersInit | undefined,
+				const response = await http.request("GET", url, {
+					...(options ?? {}),
+					responseType: "text",
 				});
-				const html = await response.text();
+				const html = response.responseText ?? String(response.response ?? "");
 				const doc = dependencies.parseHTMLDocument
-					? dependencies.parseHTMLDocument(html, url)
+					? dependencies.parseHTMLDocument(html, response.responseURL)
 					: new dependencies.DOMParser().parseFromString(html, "text/html");
-				results.push(await processor(wrapDocument(doc, url), url));
+				results.push(await processor(wrapDocument(doc, response.responseURL), response.responseURL));
 			}
 			return results;
 		},

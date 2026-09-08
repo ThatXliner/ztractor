@@ -121,4 +121,112 @@ describe("upstream Zotero runtime executor", () => {
 		});
 		expect(result.items?.[0].creators).toHaveLength(2);
 	});
+
+	test("uses the final redirected URL to select a targeted translator", async () => {
+		spyOn(globalThis, "fetch").mockResolvedValue({
+			status: 200,
+			statusText: "OK",
+			url: "http://patft.uspto.gov/netacgi/nph-Parser?query=test",
+			text: async () => "<html><head><title>Search Results:</title></head></html>",
+		} as Response);
+
+		const result = await extractMetadata({
+			url: "https://source.example/start",
+			dependencies: { DOMParser, parseHTMLDocument },
+		});
+
+		expect(result.success).toBe(false);
+		expect(result.error).toBe("Open an individual article page; this page contains multiple items");
+		expect(result.diagnostics?.[0]?.translator).toBe("Patents - USPTO");
+	});
+
+	test("settles promptly when the caller aborts a hung translator", async () => {
+		spyOn(globalThis, "fetch").mockImplementation(async () => await new Promise<Response>(() => {}));
+		const controller = new AbortController();
+		const resultPromise = extractMetadata({
+			url: "https://en.wikipedia.org/wiki/Zotero",
+			html: wikipediaHtml,
+			signal: controller.signal,
+			dependencies: { DOMParser, parseHTMLDocument },
+		});
+		setTimeout(() => controller.abort(new Error("caller cancelled")), 0);
+
+		const result = await Promise.race([
+			resultPromise,
+			new Promise<never>((_resolve, reject) => setTimeout(() => reject(new Error("abort did not settle")), 100)),
+		]);
+
+		expect(result.success).toBe(false);
+		expect(result.error).toBe("caller cancelled");
+	});
+
+	test("extracts embedded citation metadata offline", async () => {
+		spyOn(globalThis, "fetch").mockImplementation(async () => {
+			throw new Error("network must not be called");
+		});
+		const result = await extractMetadata({
+			url: "https://evidence.example/article",
+			html: `<!doctype html><html><head>
+				<meta name="citation_title" content="Reliable evidence">
+				<meta name="citation_author" content="Doe, Jane">
+				<meta name="citation_author" content="Smith, Sam">
+				<meta name="citation_publication_date" content="2024-02-03">
+				<meta name="citation_journal_title" content="Evidence Review">
+			</head><body></body></html>`,
+			network: "deny",
+			dependencies: { DOMParser, parseHTMLDocument },
+		});
+
+		expect(result.success).toBe(true);
+		expect(result.translator).toBe("Embedded Metadata");
+		expect(result.items?.[0]).toMatchObject({
+			title: "Reliable evidence",
+			date: "2024-02-03",
+			publicationTitle: "Evidence Review",
+			creators: [
+				{ firstName: "Jane", lastName: "Doe", creatorType: "author" },
+				{ firstName: "Sam", lastName: "Smith", creatorType: "author" },
+			],
+		});
+	});
+
+	test("does not fetch supplied empty HTML or a supplied document", async () => {
+		const fetchSpy = spyOn(globalThis, "fetch").mockImplementation(async () => {
+			throw new Error("fetch must not be called");
+		});
+		const document = parseHTMLDocument("<html><head></head><body></body></html>", "https://document.example/article");
+
+		await extractMetadata({
+			url: "https://empty.example/article",
+			html: "",
+			network: "deny",
+			dependencies: { DOMParser, parseHTMLDocument },
+		});
+		await extractMetadata({
+			url: "https://document.example/article",
+			document,
+			network: "deny",
+			dependencies: { DOMParser, parseHTMLDocument },
+		});
+
+		expect(fetchSpy).not.toHaveBeenCalled();
+	});
+
+	test("rejects network-denied extraction without supplied page data before fetch", async () => {
+		const fetchSpy = spyOn(globalThis, "fetch").mockImplementation(async () => {
+			throw new Error("fetch must not be called");
+		});
+
+		const result = await extractMetadata({
+			url: "https://deny.example/article",
+			network: "deny",
+			dependencies: { DOMParser, parseHTMLDocument },
+		});
+
+		expect(result).toMatchObject({
+			success: false,
+			error: "Network access denied for https://deny.example/article",
+		});
+		expect(fetchSpy).not.toHaveBeenCalled();
+	});
 });

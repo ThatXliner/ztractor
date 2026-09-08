@@ -91,16 +91,19 @@ describe("Zotero upstream codemods", () => {
 
 	test("XRegExp mod hides Browserify require calls from downstream bundlers", () => {
 		const source = [
+			"(function(f){if(typeof exports===\"object\"&&typeof module!==\"undefined\"){module.exports=f()}else if(typeof define===\"function\"&&define.amd){define([],f)}else{var g;if(typeof window!==\"undefined\"){g=window}else if(typeof global!==\"undefined\"){g=global}else if(typeof self!==\"undefined\"){g=self}else{g=this}g.XRegExp = f()}})(function(){",
 			"var XRegExp = require('./xregexp');",
 			"require('./addons/build')(XRegExp);",
 			"module.exports = XRegExp;",
+			"});",
 		].join("\n");
 
 		const output = applyXRegExpRuntimeAdapter("modules/utilities/xregexp-all.js", source);
 
 		expect(output.code).not.toContain("require(");
 		expect(output.code).toContain("__xregexpRequire('./xregexp')");
-		expect(output.code).toContain("var XRegExp = globalThis.XRegExp");
+		expect(output.code).toContain("var __ztractorXRegExpRoot = {}");
+		expect(output.code).toContain("return __ztractorXRegExpRoot.XRegExp");
 	});
 
 	test("XRegExp mod removes utilities CommonJS fallback", () => {
@@ -115,7 +118,7 @@ describe("Zotero upstream codemods", () => {
 		const output = applyXRegExpRuntimeAdapter("modules/utilities/utilities.js", source);
 
 		expect(output.code).not.toContain("require('./xregexp-all')");
-		expect(output.code).toContain("Utilities.XRegExp = globalThis.XRegExp || null");
+		expect(output.code).toContain("Utilities.XRegExp = XRegExp");
 	});
 
 	test("XRegExp mod fails when an upstream anchor disappears", () => {

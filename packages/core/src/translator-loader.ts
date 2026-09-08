@@ -10,7 +10,7 @@ export function parseTranslatorMetadata(
     // Extract JSON from the first comment block
     // Allow optional newline after the closing brace
     const match = code.match(/^\s*({[\s\S]*?})(?:\s*\n|$)/);
-    if (!match) return null;
+    if (!match?.[1]) return null;
 
     const metadata = JSON.parse(match[1]) as TranslatorMetadata;
 

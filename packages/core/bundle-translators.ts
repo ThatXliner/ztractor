@@ -35,7 +35,13 @@ function parseTranslatorMetadata(code: string): TranslatorMetadata | null {
     const match = code.match(/^\s*({[\s\S]*?})(?:\s*\n|$)/);
     if (!match) return null;
 
-    const metadata = JSON.parse(match[1]) as TranslatorMetadata;
+    const metadata = JSON.parse(match[1]) as TranslatorMetadata & {
+      target: string | null;
+      maxVersion: string | null;
+    };
+
+    if (metadata.target == null) metadata.target = '';
+    if (metadata.maxVersion == null) metadata.maxVersion = '';
 
     if (
       !metadata.translatorID ||

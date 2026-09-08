@@ -1768,8 +1768,8 @@ else {
 	XRegExp: typeof XRegExp !== "undefined" ? XRegExp : null
 }
 
-if (!Utilities.XRegExp && typeof globalThis != 'undefined') {
-	Utilities.XRegExp = globalThis.XRegExp || null;
+if (!Utilities.XRegExp) {
+	Utilities.XRegExp = XRegExp;
 }
 
 if (typeof module != 'undefined') {

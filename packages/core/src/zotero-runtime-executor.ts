@@ -1,7 +1,11 @@
 import type { ExtractMetadataOptions, ItemType, ZoteroItem } from "./types";
 import type { TranslatorRegistryEntry } from "./translators-registry";
-import { createZoteroHostAdapters } from "./host/zotero-host";
-import { installZoteroHost, Zotero } from "./generated/zotero-runtime/index.js";
+import {
+	createZoteroHostAdapters,
+	type ZoteroHostPolicyOptions,
+} from "./host/zotero-host";
+import { withDocumentLocation } from "./document-location";
+import { createZoteroRuntime } from "./generated/zotero-runtime/index.js";
 
 type ExecutorDependencies = NonNullable<ExtractMetadataOptions["dependencies"]>;
 
@@ -12,8 +16,8 @@ interface RuntimeTranslatorProvider {
 	getWebTranslatorsForLocation(uri: string, rootUri: string): Promise<[any[], unknown[]]>;
 }
 
-function translatorTypeForName(type: string): number {
-	return (Zotero.Translator.TRANSLATOR_TYPES as Record<string, number>)[type] ?? 0;
+function translatorTypeForName(runtime: any, type: string): number {
+	return (runtime.Translator.TRANSLATOR_TYPES as Record<string, number>)[type] ?? 0;
 }
 
 function matchesTarget(url: string, target: string): boolean {
@@ -25,56 +29,6 @@ function matchesTarget(url: string, target: string): boolean {
 	}
 }
 
-function createLocationLike(url: string) {
-	const parsedUrl = new URL(url);
-	return {
-		href: url,
-		protocol: parsedUrl.protocol,
-		host: parsedUrl.host,
-		hostname: parsedUrl.hostname,
-		port: parsedUrl.port,
-		pathname: parsedUrl.pathname,
-		search: parsedUrl.search,
-		hash: parsedUrl.hash,
-		origin: parsedUrl.origin,
-		toString: () => url,
-	};
-}
-
-function canProxyOverride(doc: Document, prop: "URL" | "documentURI" | "location"): boolean {
-	const descriptor = Object.getOwnPropertyDescriptor(doc, prop);
-	if (!descriptor || descriptor.configurable) return true;
-	if ("value" in descriptor) return Boolean(descriptor.writable);
-	return descriptor.get !== undefined;
-}
-
-function ensureDocumentLocation(doc: Document, url: string): Document {
-	const location = createLocationLike(url);
-	try {
-		Object.defineProperty(doc, "URL", { value: url, configurable: true });
-	} catch (_e) {}
-	try {
-		Object.defineProperty(doc, "documentURI", { value: url, configurable: true });
-	} catch (_e) {}
-	try {
-		Object.defineProperty(doc, "location", { value: location, configurable: true });
-		return doc;
-	} catch (_e) {
-		const canOverrideURL = canProxyOverride(doc, "URL");
-		const canOverrideDocumentURI = canProxyOverride(doc, "documentURI");
-		const canOverrideLocation = canProxyOverride(doc, "location");
-		return new Proxy(doc, {
-			get(target, prop, receiver) {
-				if (prop === "URL" && canOverrideURL) return url;
-				if (prop === "documentURI" && canOverrideDocumentURI) return url;
-				if (prop === "location" && canOverrideLocation) return location;
-				const value = Reflect.get(target, prop, receiver);
-				return typeof value === "function" ? value.bind(target) : value;
-			},
-		});
-	}
-}
-
 function cloneItem(item: ZoteroItem): ZoteroItem {
 	return JSON.parse(JSON.stringify(item)) as ZoteroItem;
 }
@@ -83,7 +37,10 @@ class RegistryTranslatorProvider implements RuntimeTranslatorProvider {
 	private readonly entriesById = new Map<string, TranslatorRegistryEntry>();
 	private readonly translatorsById = new Map<string, any>();
 
-	constructor(private readonly entries: TranslatorRegistryEntry[]) {
+	constructor(
+		private readonly entries: TranslatorRegistryEntry[],
+		private readonly runtime: any,
+	) {
 		for (const entry of entries) {
 			this.entriesById.set(entry.metadata.translatorID, entry);
 		}
@@ -95,7 +52,7 @@ class RegistryTranslatorProvider implements RuntimeTranslatorProvider {
 	}
 
 	async getAllForType(type: string): Promise<any[]> {
-		const typeBit = translatorTypeForName(type);
+		const typeBit = translatorTypeForName(this.runtime, type);
 		return this.entries
 			.filter((entry) => (entry.metadata.translatorType & typeBit) !== 0)
 			.map((entry) => this.toRuntimeTranslator(entry))
@@ -127,7 +84,7 @@ class RegistryTranslatorProvider implements RuntimeTranslatorProvider {
 		const cached = this.translatorsById.get(id);
 		if (cached) return cached;
 
-		const translator = new Zotero.Translator({
+		const translator = new this.runtime.Translator({
 			...entry.metadata,
 			code: this.getFullTranslatorCode(entry),
 		});
@@ -143,16 +100,16 @@ class RegistryTranslatorProvider implements RuntimeTranslatorProvider {
 
 export class ZoteroRuntimeExecutor {
 	private readonly provider: RegistryTranslatorProvider;
+	private readonly runtime: any;
 
 	constructor(
 		entries: TranslatorRegistryEntry[],
 		private readonly dependencies: ExecutorDependencies,
+		policy: ZoteroHostPolicyOptions = {},
 	) {
-		this.provider = new RegistryTranslatorProvider(entries);
-		if (!(globalThis as any).DOMParser && dependencies.DOMParser) {
-			(globalThis as any).DOMParser = dependencies.DOMParser;
-		}
-		installZoteroHost(createZoteroHostAdapters({ entries, dependencies }));
+		const host = createZoteroHostAdapters({ entries, dependencies, ...policy });
+		this.runtime = createZoteroRuntime(host, dependencies.DOMParser);
+		this.provider = new RegistryTranslatorProvider(entries, this.runtime);
 	}
 
 	async detectWeb(
@@ -177,7 +134,7 @@ export class ZoteroRuntimeExecutor {
 
 		translate.setTranslator(this.provider.toRuntimeTranslator(entry));
 		translate.setHandler("select", (_translate: unknown, itemList: Record<string, string>, callback: Function) => {
-			callback(itemList);
+			callback(Object.keys(itemList).length === 1 ? itemList : null);
 		});
 		translate.setHandler("itemDone", (_translate: unknown, _newItem: unknown, item: ZoteroItem) => {
 			items.push(cloneItem(item));
@@ -199,8 +156,8 @@ export class ZoteroRuntimeExecutor {
 	}
 
 	private createWebTranslate(doc: Document, url: string): any {
-		const locatedDoc = ensureDocumentLocation(doc, url);
-		const translate = new Zotero.Translate.Web();
+		const locatedDoc = withDocumentLocation(doc, url);
+		const translate = new this.runtime.Translate.Web();
 		translate.setTranslatorProvider(this.provider);
 		translate.setDocument(locatedDoc);
 		return translate;

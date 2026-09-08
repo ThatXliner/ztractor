@@ -5,6 +5,7 @@
 
 import type {
   ExtractMetadataOptions,
+  ExtractMetadataDiagnostic,
   ExtractMetadataResult,
   ZoteroItem,
 } from './types';
@@ -38,19 +39,94 @@ function isWebTranslator(entry: TranslatorRegistryEntry): boolean {
   return (entry.metadata.translatorType & 4) !== 0;
 }
 
-async function withTimeout<T>(promise: Promise<T>, timeout: number, label: string): Promise<T> {
-  let timeoutId: ReturnType<typeof setTimeout> | undefined;
-  const timeoutPromise = new Promise<never>((_resolve, reject) => {
-    timeoutId = setTimeout(() => {
-      reject(new Error(`${label} timed out after ${timeout}ms`));
-    }, timeout);
-  });
-
-  try {
-    return await Promise.race([promise, timeoutPromise]);
-  } finally {
-    if (timeoutId) clearTimeout(timeoutId);
+class ExtractionTimeoutError extends Error {
+  constructor(label: string, timeout: number) {
+    super(`${label} timed out after ${timeout}ms`);
+    this.name = 'TimeoutError';
   }
+}
+
+interface ExtractionDeadline {
+  signal: AbortSignal;
+  remaining: () => number;
+  abort: (reason?: unknown) => void;
+  dispose: () => void;
+}
+
+function createExtractionDeadline(timeout: number, parentSignal?: AbortSignal): ExtractionDeadline {
+  const controller = new AbortController();
+  const startedAt = Date.now();
+  const deadlineAt = startedAt + timeout;
+  const timeoutId = setTimeout(() => {
+    controller.abort(new ExtractionTimeoutError('Extraction', timeout));
+  }, timeout);
+  const onParentAbort = () => {
+    controller.abort(parentSignal?.reason);
+  };
+
+  if (parentSignal?.aborted) {
+    onParentAbort();
+  } else {
+    parentSignal?.addEventListener('abort', onParentAbort, { once: true });
+  }
+
+  return {
+    signal: controller.signal,
+    remaining: () => Math.max(0, deadlineAt - Date.now()),
+    abort: (reason) => {
+      if (!controller.signal.aborted) controller.abort(reason);
+    },
+    dispose: () => {
+      clearTimeout(timeoutId);
+      parentSignal?.removeEventListener('abort', onParentAbort);
+    },
+  };
+}
+
+async function withRemainingDeadline<T>(
+	operation: () => Promise<T> | T,
+	deadline: ExtractionDeadline,
+	label: string,
+): Promise<T> {
+  if (deadline.signal.aborted) {
+    throw deadline.signal.reason ?? new Error('Extraction aborted');
+  }
+
+	const remaining = deadline.remaining();
+	if (remaining <= 0) throw new ExtractionTimeoutError(label, 0);
+
+	let onAbort: (() => void) | undefined;
+	const aborted = new Promise<never>((_resolve, reject) => {
+		onAbort = () => reject(deadline.signal.reason ?? new Error('Extraction aborted'));
+		deadline.signal.addEventListener('abort', onAbort, { once: true });
+	});
+
+	try {
+		return await Promise.race([Promise.resolve().then(operation), aborted]);
+	} finally {
+		if (onAbort) deadline.signal.removeEventListener('abort', onAbort);
+	}
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function isTimeoutError(error: unknown): boolean {
+  return error instanceof Error && error.name === 'TimeoutError';
+}
+
+function isSuccessfulResponse(response: Response): boolean {
+  if (typeof response.ok === 'boolean') return response.ok;
+  return response.status >= 200 && response.status < 300;
+}
+
+function parseHttpUrl(url: string): URL {
+  const parsedUrl = new URL(url);
+  if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+    throw new Error(`Unsupported URL protocol: ${parsedUrl.protocol}`);
+  }
+  return parsedUrl;
 }
 
 /**
@@ -85,40 +161,73 @@ export async function extractMetadata(
     url,
     html,
     headers,
+    network = 'allow',
+    signal,
+    document,
     timeout = 10000,
     dependencies = { DOMParser: (globalThis as any).DOMParser },
   } = opts;
 
+  let deadline: ExtractionDeadline | undefined;
+  const diagnostics: ExtractMetadataDiagnostic[] = [];
+
   try {
+    try {
+      parseHttpUrl(url);
+    } catch (error) {
+      if (error instanceof Error && error.message.startsWith('Unsupported URL protocol:')) {
+        return { success: false, error: error.message };
+      }
+      return { success: false, error: `Invalid URL: ${url}` };
+    }
+    if (!Number.isFinite(timeout) || timeout <= 0) {
+      return { success: false, error: 'timeout must be a positive finite number' };
+    }
+
+    if (network === 'deny' && html === undefined && document === undefined) {
+      return {
+        success: false,
+        error: `Network access denied for ${url}`,
+      };
+    }
+
+    deadline = createExtractionDeadline(timeout, signal);
+
     // Load translators registry
     await loadRegistry();
 
     // Get HTML content
     let htmlContent = html;
-    if (!htmlContent) {
-      const response = await fetch(url, {
-        headers: headers || {
-          'User-Agent':
-            'Mozilla/5.0 (compatible; Ztractor/1.0; +https://github.com/zotero/translators)',
+    let sourceUrl = url;
+    if (htmlContent === undefined && document === undefined) {
+      const response = await withRemainingDeadline(
+        async () => {
+          const response = await fetch(url, {
+            ...(headers ? { headers } : {}),
+            signal: deadline!.signal,
+          });
+          if (!isSuccessfulResponse(response)) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          const finalUrl = response.url || url;
+          parseHttpUrl(finalUrl);
+          return {
+            url: finalUrl,
+            html: await response.text(),
+          };
         },
-        signal: AbortSignal.timeout(timeout),
-      });
-
-      if (!response.ok) {
-        return {
-          success: false,
-          error: `HTTP ${response.status}: ${response.statusText}`,
-        };
-      }
-
-      htmlContent = await response.text();
+        deadline,
+        'Initial fetch',
+      );
+      sourceUrl = response.url;
+      htmlContent = response.html;
     }
 
     // Parse HTML into Document
-    const doc = parseHTMLDocument(htmlContent, url, dependencies);
+    const doc = document ?? parseHTMLDocument(htmlContent ?? '', sourceUrl, dependencies);
 
     // Find matching translators
-    const matchingTranslators = sortByTranslatorPriority(findTranslatorsForUrl(url));
+    const matchingTranslators = sortByTranslatorPriority(findTranslatorsForUrl(sourceUrl));
 
     if (matchingTranslators.length === 0) {
       return {
@@ -127,15 +236,23 @@ export async function extractMetadata(
       };
     }
 
-    const runtimeExecutor = new ZoteroRuntimeExecutor(translatorsRegistry, dependencies);
-
     // Try translators in priority order
     for (const entry of matchingTranslators) {
+      if (deadline.signal.aborted || deadline.remaining() <= 0) break;
+
+      const runtimeExecutor = new ZoteroRuntimeExecutor(translatorsRegistry, dependencies, {
+        network,
+        signal: deadline.signal,
+        baseUrl: sourceUrl,
+        timeout: deadline.remaining(),
+      });
+
+      let stage: 'detect' | 'extract' = 'detect';
       try {
         // Check if translator can handle this page
-        const itemType = await withTimeout(
-          runtimeExecutor.detectWeb(entry, doc, url),
-          timeout,
+        const itemType = await withRemainingDeadline(
+          () => runtimeExecutor.detectWeb(entry, doc, sourceUrl),
+          deadline,
           `${entry.metadata.label} detectWeb`,
         );
 
@@ -143,11 +260,28 @@ export async function extractMetadata(
           continue; // Try next translator
         }
 
+        if (itemType === 'multiple') {
+          diagnostics.push({
+            translator: entry.metadata.label,
+            stage: 'detect',
+            message: 'Translator returned multiple items; interactive selection is unavailable',
+          });
+          if (entry.metadata.target !== '') {
+            return {
+              success: false,
+              error: 'Open an individual article page; this page contains multiple items',
+              diagnostics,
+            };
+          }
+          continue;
+        }
+
         // Extract metadata
-        const items = await withTimeout(
-          runtimeExecutor.doWeb(entry, doc, url),
-          timeout,
-          `${entry.metadata.label} doWeb`,
+        stage = 'extract';
+        const items = await withRemainingDeadline(
+          () => runtimeExecutor.doWeb(entry, doc, sourceUrl),
+          deadline,
+          `${entry.metadata.label} extract`,
         );
 
         if (items.length > 0) {
@@ -155,27 +289,47 @@ export async function extractMetadata(
             success: true,
             items,
             translator: entry.metadata.label,
+            source: 'translator',
+            diagnostics,
           };
         }
+
+        diagnostics.push({
+          translator: entry.metadata.label,
+          stage: 'extract',
+          message: 'Translator returned no items',
+        });
       } catch (e) {
-        console.error(
-          `Error with translator ${entry.metadata.label}:`,
-          e
-        );
+        diagnostics.push({
+          translator: entry.metadata.label,
+          stage,
+          message: errorMessage(e),
+        });
+        if (isTimeoutError(e)) deadline.abort(e);
+        if (deadline.signal.aborted) break;
         // Try next translator
         continue;
       }
     }
 
-    return {
+    const result: ExtractMetadataResult = {
       success: false,
-      error: 'No translator could extract metadata from this page',
+      error: deadline.signal.aborted && deadline.signal.reason
+        ? errorMessage(deadline.signal.reason)
+        : 'No translator could extract metadata from this page',
     };
+    if (diagnostics.length > 0) result.diagnostics = diagnostics;
+    return result;
   } catch (e) {
-    return {
+    const result: ExtractMetadataResult = {
       success: false,
       error: e instanceof Error ? e.message : String(e),
     };
+    if (diagnostics.length > 0) result.diagnostics = diagnostics;
+    return result;
+  } finally {
+    deadline?.abort(new Error('Extraction finished'));
+    deadline?.dispose();
   }
 }
 
@@ -220,6 +374,7 @@ export async function findTranslators(url: string): Promise<{
 // Re-export types
 export type {
   ExtractMetadataOptions,
+  ExtractMetadataDiagnostic,
   ExtractMetadataResult,
   ZoteroItem,
   ItemType,
