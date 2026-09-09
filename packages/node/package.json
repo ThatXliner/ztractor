@@ -1,5 +1,6 @@
 {
     "name": "ztractor-node",
+    "private": true,
     "description": "Node.js optimized version of Ztractor with linkedom for fast DOM parsing",
     "version": "0.1.0",
     "type": "module",

@@ -4,9 +4,22 @@
 pinned Zotero translation runtime and bundled web translators against a URL,
 captured HTML, or an already parsed DOM document.
 
-This package is used from the source checkout. Follow the [root build
-instructions](../../README.md) to initialize the pinned submodules and generate
-the runtime and translator registry before importing a local build.
+Install the published package with:
+
+```sh
+npm install ztractor
+```
+
+Version 2.0.0 is published on npm. The package ships the prebuilt runtime and
+translator registry, so browser consumers do not need the pinned submodules or
+a source build.
+
+For a source checkout, follow the [root build
+instructions](https://github.com/ThatXliner/ztractor/blob/main/README.md) to
+initialize the pinned submodules and generate the runtime and translator
+registry before importing a local build. See the [migration
+notes](https://github.com/ThatXliner/ztractor/blob/main/packages/core/CHANGELOG.md)
+for changes from 1.0.0.
 
 ## Primary API
 
@@ -49,12 +62,12 @@ requires `url`. The commonly used options are:
 
 Results have `success`. A successful result exposes `items`; a failed result
 exposes `error`. `translator`, `source`, and `diagnostics` are optional
-fields described by the [source types](./src/types.ts). When a translator
+fields described by the [source types](https://github.com/ThatXliner/ztractor/blob/main/packages/core/src/types.ts). When a translator
 reports multiple items, the result asks the caller to open an individual
 article page. Ztractor does not auto-select one.
 
 The entry point also exposes translator discovery and compatibility helpers.
-See [src/index.ts](./src/index.ts) for the current exports.
+See [src/index.ts](https://github.com/ThatXliner/ztractor/blob/main/packages/core/src/index.ts) for the current exports.
 
 ## Runtime constraints
 
@@ -79,6 +92,6 @@ bun test
 
 ## License and upstream notices
 
-This package is licensed under AGPL v3+, available in [LICENSE](../../LICENSE).
+This package is licensed under AGPL v3+, available in [LICENSE](https://github.com/ThatXliner/ztractor/blob/main/LICENSE).
 The pinned `translate` and `translators` submodules retain their upstream
 Zotero runtime and translator notices.

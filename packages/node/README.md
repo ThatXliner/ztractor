@@ -1,6 +1,7 @@
 # ztractor-node
 
-`ztractor-node` is the Node.js adapter for the browser-compatible
+`ztractor-node` is a private workspace package, not an npm release. It is the
+Node.js adapter for the browser-compatible
 [`ztractor`](../core) package. It injects a Linkedom-based `DOMParser` and
 HTML document parser, with XPath support provided by `@xmldom/xmldom` and
 `xpath`. It runs the same pinned Zotero runtime and web translators as the
