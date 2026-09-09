@@ -3,11 +3,11 @@
   "configVersion": 0,
   "workspaces": {
     "": {
-      "name": "ztractor",
+      "name": "ztractor-monorepo",
     },
     "packages/core": {
       "name": "ztractor",
-      "version": "0.1.0",
+      "version": "2.0.1",
       "devDependencies": {
         "@types/bun": "^1.3.2",
         "bunup": "^0.15.14",

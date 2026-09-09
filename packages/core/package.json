@@ -1,7 +1,7 @@
 {
     "name": "ztractor",
-    "description": "Extract metadata from websites using Zotero's 600+ translators",
-    "version": "1.0.0",
+    "description": "Extract structured metadata with Zotero's upstream web translators",
+    "version": "2.0.1",
     "type": "module",
     "author": "Bryan Hu",
     "license": "AGPL-3.0-or-later",
@@ -27,7 +27,8 @@
     },
     "homepage": "https://github.com/ThatXliner/ztractor#readme",
     "files": [
-        "dist"
+        "dist",
+        "CHANGELOG.md"
     ],
     "module": "./dist/index.js",
     "types": "./dist/index.d.ts",
