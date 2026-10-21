@@ -95,3 +95,7 @@ bun test
 This package is licensed under AGPL v3+, available in [LICENSE](https://github.com/ThatXliner/ztractor/blob/main/LICENSE).
 The pinned `translate` and `translators` submodules retain their upstream
 Zotero runtime and translator notices.
+
+## Server-side runtime support
+
+Version 3 requires Node.js 22.23.4+, 24.22.1+, or 26.12.1+ for HTTPS. Node 18, 20, 23, and 25 are unsupported. These floors include the October 2026 eMudhra CA distrust update. Bun 1.3.14 is not a supported HTTPS runtime. Browsers use their own certificate verifier. Upgrade and restart server-side consumers before fetching remote metadata.

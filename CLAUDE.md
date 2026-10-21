@@ -13,7 +13,7 @@ The core functionality wraps Zotero translator JavaScript files, executes them i
 
 ## Build Commands
 
-This project uses Bun as the package manager and build tool.
+This project uses npm on patched Node.js for dependency downloads and Bun only as an offline build and test tool.
 
 **Initial setup:**
 ```bash
@@ -21,7 +21,7 @@ This project uses Bun as the package manager and build tool.
 git submodule update --init
 
 # Install dependencies
-bun install
+npm ci
 ```
 
 **Build all packages:**
