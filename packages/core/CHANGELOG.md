@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.0.0
+
+- Require Node.js 22.23.4+, 24.22.1+, or 26.12.1+ for server-side HTTPS, including the October 2026 eMudhra CA distrust update. Node 18, 20, 23, and 25 are unsupported.
+- Bun 1.3.14 is not a supported HTTPS runtime. Browser consumers continue to use browser certificate validation.
+- Install source dependencies through npm on patched Node. Bun remains an offline build and test tool only.
+
 ## 2.0.1
 
 Documentation-only patch release. The runtime and bundled translator files are

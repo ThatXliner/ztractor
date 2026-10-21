@@ -43,8 +43,8 @@ repository root:
 git clone --recurse-submodules https://github.com/ThatXliner/ztractor.git
 cd ztractor
 git submodule update --init --recursive
-bun install
-bun run build
+npm ci
+npm run build
 ```
 
 The build generates the runtime and translator registry used by both packages.
@@ -54,7 +54,7 @@ from npm. Bun 1.3.14 matches the validated toolchain.
 
 ## Run a local Node or Bun example
 
-After `bun run build`, from the repository root, save the following as
+After `npm run build`, from the repository root, save the following as
 `tmp-extract.mjs` and run it with `node tmp-extract.mjs` or
 `bun tmp-extract.mjs`:
 
@@ -134,3 +134,7 @@ procedure and [the 2.0 migration notes](./packages/core/CHANGELOG.md).
 Ztractor is licensed under AGPL v3+, available in [LICENSE](./LICENSE). The
 `packages/core/translate` and `packages/core/translators` submodules retain
 the upstream Zotero runtime and translator notices.
+
+## TLS runtime support (3.0.0)
+
+Server-side HTTPS requires Node.js 22.23.4+, 24.22.1+, or 26.12.1+. Node 18, 20, 23, and 25 are unsupported. These runtime floors include the October 2026 eMudhra CA distrust update. Browser consumers use browser certificate validation. Bun 1.3.14 is vulnerable and is not a supported HTTPS runtime. Use `npm ci` for source dependency downloads; Bun is retained only for offline builds and fixture tests. Restart consumers after upgrading Node.
