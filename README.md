@@ -135,6 +135,6 @@ Ztractor is licensed under AGPL v3+, available in [LICENSE](./LICENSE). The
 `packages/core/translate` and `packages/core/translators` submodules retain
 the upstream Zotero runtime and translator notices.
 
-## TLS runtime support (3.0.0)
+## Runtime support
 
-Server-side HTTPS requires Node.js 22.23.4+, 24.22.1+, or 26.12.1+. Node 18, 20, 23, and 25 are unsupported. These runtime floors include the October 2026 eMudhra CA distrust update. Browser consumers use browser certificate validation. Bun 1.3.14 is vulnerable and is not a supported HTTPS runtime. Use `npm ci` for source dependency downloads; Bun is retained only for offline builds and fixture tests. Restart consumers after upgrading Node.
+Server-side HTTPS requires Node.js 22.23.4+, 24.22.1+, or 26.12.1+. Node 18, 20, 23, and 25 are unsupported. Bun before 1.4.4 is not a supported HTTPS runtime. Use `npm ci` for source dependency downloads; Bun is used only for offline builds and fixture tests.
